@@ -38,8 +38,12 @@
         th { font-size: 14px; color: var(--text-color-dark); font-weight: 500; text-transform: uppercase; }
         tbody tr { animation: tr-in 0.3s ease-out; }
         tbody tr:hover { background-color: var(--surface-color-2); }
-        .actions button, .card-header-action button { font-size: 14px; padding: 8px; margin-left: 5px; border-radius: 50%; cursor: pointer; border: none; background-color: var(--surface-color-2); color: var(--text-color-dark); width: 32px; height: 32px; display: inline-flex; justify-content: center; align-items: center; transition: all 0.2s; }
-        .actions button:hover, .card-header-action button:hover { background-color: var(--primary-color); color: white; transform: scale(1.1); }
+        button, .button { padding: 10px 20px; font-size: 14px; font-weight: 600; border-radius: 8px; border: none; cursor: pointer; transition: all 0.2s ease-out; text-shadow: 0 0 8px rgba(0,0,0,0.5); }
+        button.primary, .button.primary { background-image: var(--primary-gradient); color: white; }
+        button:hover, .button:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        button:active, .button:active { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+        .actions button, .card-header-action button { font-size: 14px; padding: 8px; margin-left: 5px; border-radius: 50%; width: 32px; height: 32px; display: inline-flex; justify-content: center; align-items: center; background-color: var(--surface-color-2); color: var(--text-color-dark); text-shadow: none; }
+        .actions button:hover, .card-header-action button:hover { background-color: var(--primary-color); color: white; transform: scale(1.1) translateY(0); box-shadow: none; }
         .form-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
         .form-row label { flex-basis: 120px; color: var(--text-color-dark); }
         .form-row input { flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--background-color); color: var(--text-color-light); }
@@ -47,10 +51,10 @@
         .form-row input:disabled { background-color: var(--surface-color-2); color: var(--text-color-dark); cursor: not-allowed; }
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 100; }
         .modal-content { background: var(--surface-color); padding: 2rem; border-radius: var(--border-radius); width: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); border: 1px solid var(--border-color); animation: slide-down-fade-in 0.4s ease-out; }
+        .modal-content h2 { text-align: center; justify-content: center; }
         .modal.visible { display: flex; }
         .form-actions { text-align: right; margin-top: 1.5rem; }
         .form-actions button { width: auto; border-radius: 6px; padding: 10px 20px; }
-        .form-actions button.primary { background-image: var(--primary-gradient); }
         #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
         .toast { padding: 12px 20px; background-color: var(--surface-color-2); border-left: 4px solid var(--primary-color); color: var(--text-color-light); border-radius: 6px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: toast-in 0.5s; display: flex; align-items: center; gap: 10px; }
         .toast.success { border-color: var(--success-color); } .toast.error { border-color: var(--danger-color); }
@@ -73,7 +77,7 @@
     <div id="toast-container"></div>
     <div class="titlebar">
         <div class="titlebar-title">管理面板 - <span id="status"></span><div id="network-indicator" class="network-indicator"></div></div>
-        <div class="window-controls"><button id="pin-btn">📌</button><button id="minimize-btn">-</button><button id="maximize-btn">+</button><button id="close-btn">×</button></div>
+        <div class="window-controls"><button id="pin-btn" title="置顶"><svg><use href="#icon-add"/></svg>📌</button><button id="minimize-btn" title="最小化">-</button><button id="maximize-btn" title="最大化">+</button><button id="close-btn" title="关闭">×</button></div>
     </div>
     <div class="main-container">
         <div class="grid-container">
@@ -93,7 +97,7 @@
             </div>
         </div>
         <div class="card">
-            <h2><svg><use href="#icon-edit"/></svg>用户管理 <button class="card-header-action" onclick="openUserModal()"><svg><use href="#icon-add"/></svg></button></h2>
+            <h2><svg><use href="#icon-edit"/></svg>用户管理 <button class="card-header-action" onclick="openUserModal()" title="添加新用户"><svg><use href="#icon-add"/></svg></button></h2>
             <table id="all-users-table"><thead><tr><th>用户名</th><th>费率/分</th><th>余额</th><th>操作</th></tr></thead><tbody></tbody></table>
         </div>
     </div>
@@ -153,13 +157,19 @@
                 row.innerHTML = `<td>${c.username}</td><td>${new Date(c.startTime).toLocaleTimeString()}</td><td>¥${(c.balance || 0).toFixed(2)}</td><td>${c.isLocked ? '已锁定' : '在线'}</td>`;
                 const actionsCell = document.createElement('td');
                 actionsCell.className = 'actions';
-                const lockBtnHTML = c.isLocked ? `<button title="解锁"><svg><use href="#icon-unlock"/></svg></button>` : `<button title="锁定"><svg><use href="#icon-lock"/></svg></button>`;
-                const rebootBtnHTML = `<button title="重启"><svg><use href="#icon-reboot"/></svg></button>`;
-                const shutdownBtnHTML = `<button title="关机"><svg><use href="#icon-shutdown"/></svg></button>`;
-                actionsCell.innerHTML = lockBtnHTML + rebootBtnHTML + shutdownBtnHTML;
-                actionsCell.children[0].onclick = () => controlClient(c.username, c.isLocked ? 'unlock' : 'lock');
-                actionsCell.children[1].onclick = () => controlClient(c.username, 'reboot');
-                actionsCell.children[2].onclick = () => controlClient(c.username, 'shutdown');
+                const lockBtn = document.createElement('button');
+                lockBtn.title = c.isLocked ? '解锁' : '锁定';
+                lockBtn.innerHTML = `<svg><use href="#icon-${c.isLocked ? 'unlock' : 'lock'}"/></svg>`;
+                lockBtn.onclick = () => controlClient(c.username, c.isLocked ? 'unlock' : 'lock');
+                const rebootBtn = document.createElement('button');
+                rebootBtn.title = '重启';
+                rebootBtn.innerHTML = `<svg><use href="#icon-reboot"/></svg>`;
+                rebootBtn.onclick = () => controlClient(c.username, 'reboot');
+                const shutdownBtn = document.createElement('button');
+                shutdownBtn.title = '关机';
+                shutdownBtn.innerHTML = `<svg><use href="#icon-shutdown"/></svg>`;
+                shutdownBtn.onclick = () => controlClient(c.username, 'shutdown');
+                actionsCell.append(lockBtn, rebootBtn, shutdownBtn);
                 row.appendChild(actionsCell);
                 activeClientsTbody.appendChild(row);
             });
@@ -172,9 +182,15 @@
                 row.innerHTML = `<td>${username}</td><td>${user.rate.toFixed(2)}</td><td>${user.balance.toFixed(2)}</td>`;
                 const actionsCell = document.createElement('td');
                 actionsCell.className = 'actions';
-                actionsCell.innerHTML = `<button title="编辑"><svg><use href="#icon-edit"/></svg></button><button title="删除"><svg><use href="#icon-delete"/></svg></button>`;
-                actionsCell.children[0].onclick = () => openUserModal(username);
-                actionsCell.children[1].onclick = () => deleteUser(username);
+                const editBtn = document.createElement('button');
+                editBtn.title = '编辑';
+                editBtn.innerHTML = `<svg><use href="#icon-edit"/></svg>`;
+                editBtn.onclick = () => openUserModal(username);
+                const deleteBtn = document.createElement('button');
+                deleteBtn.title = '删除';
+                deleteBtn.innerHTML = `<svg><use href="#icon-delete"/></svg>`;
+                deleteBtn.onclick = () => deleteUser(username);
+                actionsCell.append(editBtn, deleteBtn);
                 row.appendChild(actionsCell);
                 allUsersTbody.appendChild(row);
             }
