@@ -1,0 +1,168 @@
+{
+  "users": {
+    "user001": {
+      "password": "pass1",
+      "balance": 51.5,
+      "rate": 2
+    },
+    "user002": {
+      "password": "pass2",
+      "balance": 5,
+      "rate": 0.1
+    },
+    "user003": {
+      "password": "pass3",
+      "balance": 0.2,
+      "rate": 0.1
+    }
+  },
+  "session_logs": [
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:45:23.298Z",
+      "endTime": "2025-08-31T09:45:40.244Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:41:31.016Z",
+      "endTime": "2025-08-31T09:43:50.340Z",
+      "duration": 2,
+      "cost": 4
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:39:54.269Z",
+      "endTime": "2025-08-31T09:40:39.300Z",
+      "duration": 1,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:39:06.221Z",
+      "endTime": "2025-08-31T09:39:44.470Z",
+      "duration": 1,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:28:51.224Z",
+      "endTime": "2025-08-31T09:28:55.342Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:28:35.092Z",
+      "endTime": "2025-08-31T09:28:40.921Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:20:59.019Z",
+      "endTime": "2025-08-31T09:21:03.094Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:18:01.725Z",
+      "endTime": "2025-08-31T09:18:46.742Z",
+      "duration": 1,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:13:53.513Z",
+      "endTime": "2025-08-31T09:14:04.166Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:13:05.194Z",
+      "endTime": "2025-08-31T09:13:10.637Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:10:17.027Z",
+      "endTime": "2025-08-31T09:12:43.728Z",
+      "duration": 2,
+      "cost": 4
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:09:28.338Z",
+      "endTime": "2025-08-31T09:09:36.572Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:07:58.454Z",
+      "endTime": "2025-08-31T09:08:37.983Z",
+      "duration": 1,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:05:16.977Z",
+      "endTime": "2025-08-31T09:05:48.520Z",
+      "duration": 1,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:01:41.630Z",
+      "endTime": "2025-08-31T09:01:59.439Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:01:21.648Z",
+      "endTime": "2025-08-31T09:01:34.797Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T09:00:13.157Z",
+      "endTime": "2025-08-31T09:00:20.217Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T08:59:53.209Z",
+      "endTime": "2025-08-31T08:59:55.225Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T08:57:30.050Z",
+      "endTime": "2025-08-31T08:57:57.799Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T08:56:59.514Z",
+      "endTime": "2025-08-31T08:57:05.655Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "user001",
+      "startTime": "2025-08-31T08:51:46.051Z",
+      "endTime": "2025-08-31T08:52:18.214Z",
+      "duration": 1,
+      "cost": 0.1
+    }
+  ]
+}

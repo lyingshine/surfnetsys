@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>Client</title>
+    <style>
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes balance-flash { 0% { color: #00ff9d; text-shadow: 0 0 10px #00ff9d; } 100% { color: var(--text-color-light); text-shadow: none; } }
+        @keyframes title-pulse { 0% { color: var(--text-color-light); } 50% { color: white; } 100% { color: var(--text-color-light); } }
+        @keyframes pulse-yellow { 0% { background-color: #ffc107; box-shadow: 0 0 0 0 rgba(255,193,7,0.4); } 70% { background-color: #ffc107; box-shadow: 0 0 0 10px rgba(255,193,7,0); } 100% { background-color: #ffc107; box-shadow: 0 0 0 0 rgba(255,193,7,0); } }
+        :root {
+            --primary-color: #00aaff; --primary-gradient: linear-gradient(45deg, #00aaff, #0077cc);
+            --glow-color: rgba(0, 170, 255, 0.4); --background-color: #1a1c20;
+            --surface-color: #24272c; --text-color-light: #e1e3e6; --text-color-dark: #8a9199;
+            --border-color: #3a3f46; --border-radius: 12px; --font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            --connected-color: #28a745; --reconnecting-color: #ffc107; --error-color: #dc3545;
+        }
+        body { font-family: var(--font-family); background-color: var(--background-color); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; color: var(--text-color-light); }
+        .titlebar { -webkit-app-region: drag; height: 40px; display: flex; justify-content: flex-end; align-items: center; padding: 0 8px; position: relative; }
+        .network-indicator { -webkit-app-region: no-drag; position: absolute; left: 15px; top: 15px; width: 10px; height: 10px; border-radius: 50%; transition: background-color 0.3s; }
+        .network-indicator.connected { background-color: var(--connected-color); }
+        .network-indicator.reconnecting { background-color: var(--reconnecting-color); animation: pulse-yellow 2s infinite; }
+        .network-indicator.error { background-color: var(--error-color); }
+        .window-controls button { -webkit-app-region: no-drag; background: none; border: none; width: 32px; height: 32px; font-size: 16px; color: var(--text-color-dark); cursor: pointer; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; transition: background-color 0.2s, color 0.2s; }
+        .window-controls button:hover { background-color: var(--surface-color); color: var(--text-color-light); }
+        .window-controls .pin-btn.pinned { color: var(--primary-color); }
+        .window-controls .close-btn:hover { background-color: #e81123; color: white; }
+        .main-container { background-color: var(--surface-color); border-radius: var(--border-radius); border: 1px solid var(--border-color); box-shadow: 0 8px 32px rgba(0,0,0,0.4); margin: 0 15px 15px 15px; flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 2.5rem; position: relative; animation: fadeIn 0.5s ease-out; }
+        h2 { color: var(--text-color-light); margin-top: 0; margin-bottom: 2rem; font-weight: 600; font-size: 24px; animation: title-pulse 5s infinite; }
+        .login-form, .status-display { display: none; width: 100%; text-align: center; }
+        .visible { display: flex; flex-direction: column; align-items: center; }
+        input { width: 90%; padding: 14px; margin-bottom: 1rem; border: 1px solid var(--border-color); background-color: var(--background-color); border-radius: var(--border-radius); font-size: 16px; text-align: center; color: var(--text-color-light); transition: all 0.2s; }
+        input:focus { border-color: var(--primary-color); box-shadow: 0 0 8px var(--glow-color); outline: none; }
+        button { width: 95%; padding: 14px; background-image: var(--primary-gradient); color: white; border: none; border-radius: var(--border-radius); cursor: pointer; font-size: 16px; font-weight: 600; transition: transform 0.15s, box-shadow 0.15s; text-shadow: 0 0 8px rgba(0,0,0,0.5); }
+        button:hover { transform: scale(1.02); box-shadow: 0 0 15px var(--glow-color); }
+        button:active { transform: scale(0.98); }
+        .session-info { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 2rem; margin: 1.5rem 0; text-align: center; width: 100%; }
+        .info-box { background-color: var(--background-color); padding: 15px; border-radius: var(--border-radius); transition: transform 0.2s, background-color 0.2s; }
+        .info-box:hover { transform: translateY(-5px); background-color: var(--surface-color-2); }
+        .info-box h4 { margin: 0 0 8px 0; color: var(--text-color-dark); font-weight: 500; font-size: 14px; text-transform: uppercase; }
+        .info-box p { margin: 0; color: var(--text-color-light); font-size: 20px; font-weight: 600; }
+        #balance, #session-cost { font-family: 'Courier New', monospace; }
+        .balance-flash { animation: balance-flash 0.8s ease-out; }
+        #logout-btn { background: #4f545c; margin-top: 2rem; }
+        #logout-btn:hover { background: #686e78; box-shadow: none; }
+        .lock-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(10, 10, 10, 0.8); background-image: url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E"); color: white; display: none; justify-content: center; align-items: center; font-size: 36px; font-weight: bold; border-radius: var(--border-radius); z-index: 10; }
+        .lock-overlay.visible { display: flex; }
+    </style>
+</head>
+<body>
+    <div class="titlebar">
+        <div id="network-indicator" class="network-indicator"></div>
+        <div class="window-controls"><button id="pin-btn">📌</button><button id="minimize-btn">-</button><button id="close-btn">×</button></div>
+    </div>
+    <div class="main-container">
+        <div id="login-view" class="login-form visible"><h2>用户登录</h2><input type="text" id="username" placeholder="用户名" required><input type="password" id="password" placeholder="密码" required><button id="login-btn">登录</button></div>
+        <div id="status-view" class="status-display"><h2>欢迎, <span id="display-username"></span>!</h2><div class="session-info"><div class="info-box"><h4>总余额</h4><p id="balance">¥0.00</p></div><div class="info-box"><h4>费率</h4><p id="rate">¥0.0/分</p></div><div class="info-box"><h4>已上机</h4><p id="session-timer">00:00:00</p></div><div class="info-box"><h4>本次消费</h4><p id="session-cost">¥0.00</p></div></div><button id="logout-btn">安全登出</button></div>
+        <div id="lock-overlay" class="lock-overlay">已锁定</div>
+    </div>
+
+    <script>
+        const pinBtn = document.getElementById('pin-btn');
+        pinBtn.addEventListener('click', async () => pinBtn.classList.toggle('pinned', await window.electronAPI.invoke('toggle-always-on-top')));
+        document.getElementById('minimize-btn').addEventListener('click', () => window.electronAPI.send('minimize-window'));
+        document.getElementById('close-btn').addEventListener('click', () => window.electronAPI.send('close-window'));
+        pinBtn.classList.add('pinned');
+
+        const indicator = document.getElementById('network-indicator');
+        function setIndicatorState(state) { indicator.className = `network-indicator ${state}`; }
+
+        let ws;
+        const balanceEl = document.getElementById('balance');
+        const sessionCostEl = document.getElementById('session-cost');
+        let sessionTimerInterval;
+
+        function flashElement(el) { el.classList.add('balance-flash'); setTimeout(() => el.classList.remove('balance-flash'), 800); }
+        function formatDuration(seconds) { const h = Math.floor(seconds / 3600).toString().padStart(2, '0'); const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0'); const s = (seconds % 60).toString().padStart(2, '0'); return `${h}:${m}:${s}`; }
+        function startSessionTimer(startTime) {
+            if (sessionTimerInterval) clearInterval(sessionTimerInterval);
+            const start = new Date(startTime);
+            sessionTimerInterval = setInterval(() => { document.getElementById('session-timer').textContent = formatDuration(Math.floor((new Date() - start) / 1000)); }, 1000);
+        }
+
+        function connect() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            if (!username || !password) { alert('请输入用户名和密码'); return; }
+            ws = new WebSocket(`ws://localhost:3000`);
+
+            ws.onopen = () => {
+                setIndicatorState('connected');
+                ws.send(JSON.stringify({ type: 'login', username, password }));
+            };
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                switch (data.type) {
+                    case 'login_success':
+                        document.getElementById('login-view').classList.remove('visible');
+                        document.getElementById('status-view').classList.add('visible');
+                        document.getElementById('display-username').textContent = username;
+                        balanceEl.textContent = `¥${data.balance.toFixed(2)}`;
+                        document.getElementById('rate').textContent = `¥${data.rate.toFixed(2)}/分`;
+                        sessionCostEl.textContent = `¥0.00`;
+                        startSessionTimer(data.startTime);
+                        break;
+                    case 'login_error': alert(`登录失败: ${data.message}`); ws.close(); break;
+                    case 'balance_update':
+                        balanceEl.textContent = `¥${data.balance.toFixed(2)}`;
+                        sessionCostEl.textContent = `¥${data.sessionCost.toFixed(2)}`;
+                        flashElement(balanceEl); flashElement(sessionCostEl);
+                        break;
+                    case 'lock': document.getElementById('lock-overlay').classList.add('visible'); break;
+                    case 'unlock': document.getElementById('lock-overlay').classList.remove('visible'); break;
+                    case 'admin_message': alert(`来自管理员的消息: ${data.message}`); break;
+                    case 'reboot': document.getElementById('lock-overlay').textContent = '正在重启...'; document.getElementById('lock-overlay').classList.add('visible'); setTimeout(() => ws.close(), 3000); break;
+                    case 'shutdown': document.getElementById('lock-overlay').textContent = '正在关机...'; document.getElementById('lock-overlay').classList.add('visible'); setTimeout(() => ws.close(), 3000); break;
+                    case 'force_logout': alert(data.message); ws.close(); break;
+                }
+            };
+            ws.onclose = () => {
+                setIndicatorState('reconnecting');
+                document.getElementById('login-view').classList.add('visible');
+                document.getElementById('status-view').classList.remove('visible');
+                document.getElementById('lock-overlay').classList.remove('visible');
+                document.getElementById('lock-overlay').textContent = '已锁定';
+                clearInterval(sessionTimerInterval);
+            };
+            ws.onerror = (err) => {
+                setIndicatorState('error');
+                console.error('WebSocket Error:', err);
+            }
+        }
+        document.getElementById('login-btn').addEventListener('click', connect);
+        document.getElementById('logout-btn').addEventListener('click', () => { if (ws) ws.close(); });
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "surfnetsys",
+  "version": "1.0.0",
+  "description": "A network management system",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.13.0"
+  },
+  "devDependencies": {
+    "electron": "^37.4.0",
+    "electron-reloader": "^1.2.3"
+  }
+}

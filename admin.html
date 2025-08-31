@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>Admin Panel</title>
+    <style>
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slide-down-fade-in { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes toast-in { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes tr-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-yellow { 0% { background-color: #ffc107; box-shadow: 0 0 0 0 rgba(255,193,7,0.4); } 70% { background-color: #ffc107; box-shadow: 0 0 0 10px rgba(255,193,7,0); } 100% { background-color: #ffc107; box-shadow: 0 0 0 0 rgba(255,193,7,0); } }
+        :root {
+            --primary-color: #00aaff; --primary-gradient: linear-gradient(45deg, #00aaff, #0077cc);
+            --glow-color: rgba(0, 170, 255, 0.4); --background-color: #1a1c20; --surface-color: #24272c;
+            --surface-color-2: #2f3338; --text-color-light: #e1e3e6; --text-color-dark: #8a9199;
+            --border-color: #3a3f46; --border-radius: 10px; --danger-color: #e81123; --success-color: #00b159;
+            --font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            --connected-color: #28a745; --reconnecting-color: #ffc107; --error-color: #dc3545;
+        }
+        body { font-family: var(--font-family); background-color: var(--background-color); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; color: var(--text-color-light); }
+        svg { width: 16px; height: 16px; vertical-align: middle; }
+        .titlebar { -webkit-app-region: drag; height: 50px; display: flex; justify-content: space-between; align-items: center; padding: 0 10px 0 20px; background-color: var(--surface-color-2); border-bottom: 1px solid var(--border-color); position: relative; }
+        .titlebar-title { -webkit-app-region: no-drag; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+        .network-indicator { width: 10px; height: 10px; border-radius: 50%; transition: background-color 0.3s; }
+        .network-indicator.connected { background-color: var(--connected-color); }
+        .network-indicator.reconnecting { background-color: var(--reconnecting-color); animation: pulse-yellow 2s infinite; }
+        .network-indicator.error { background-color: var(--error-color); }
+        .window-controls button { -webkit-app-region: no-drag; background: none; border: none; width: 32px; height: 32px; color: var(--text-color-dark); cursor: pointer; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; transition: background-color 0.2s; }
+        .window-controls button:hover { background-color: var(--surface-color); }
+        .window-controls .pin-btn.pinned { color: var(--primary-color); }
+        .window-controls .close-btn:hover { background-color: var(--danger-color); color: white; }
+        .main-container { flex-grow: 1; padding: 1.5rem; display: flex; flex-direction: column; overflow-y: auto; gap: 1.5rem; }
+        .grid-container { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+        .card { background-color: var(--surface-color); border-radius: var(--border-radius); padding: 1.5rem; border: 1px solid var(--border-color); animation: fadeIn 0.5s ease-out; }
+        h2 { color: var(--text-color-light); border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-top: 0; margin-bottom: 1rem; font-weight: 600; font-size: 20px; display: flex; justify-content: space-between; align-items: center; }
+        h2 svg { margin-right: 10px; color: var(--primary-color); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { text-align: left; padding: 14px 8px; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        th { font-size: 14px; color: var(--text-color-dark); font-weight: 500; text-transform: uppercase; }
+        tbody tr { animation: tr-in 0.3s ease-out; }
+        tbody tr:hover { background-color: var(--surface-color-2); }
+        .actions button, .card-header-action button { font-size: 14px; padding: 8px; margin-left: 5px; border-radius: 50%; cursor: pointer; border: none; background-color: var(--surface-color-2); color: var(--text-color-dark); width: 32px; height: 32px; display: inline-flex; justify-content: center; align-items: center; transition: all 0.2s; }
+        .actions button:hover, .card-header-action button:hover { background-color: var(--primary-color); color: white; transform: scale(1.1); }
+        .form-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: center; }
+        .form-row label { flex-basis: 120px; color: var(--text-color-dark); }
+        .form-row input { flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--background-color); color: var(--text-color-light); }
+        .form-row input:focus { border-color: var(--primary-color); box-shadow: 0 0 8px var(--glow-color); outline: none; }
+        .form-row input:disabled { background-color: var(--surface-color-2); color: var(--text-color-dark); cursor: not-allowed; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 100; }
+        .modal-content { background: var(--surface-color); padding: 2rem; border-radius: var(--border-radius); width: 400px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); border: 1px solid var(--border-color); animation: slide-down-fade-in 0.4s ease-out; }
+        .modal.visible { display: flex; }
+        .form-actions { text-align: right; margin-top: 1.5rem; }
+        .form-actions button { width: auto; border-radius: 6px; padding: 10px 20px; }
+        .form-actions button.primary { background-image: var(--primary-gradient); }
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 12px 20px; background-color: var(--surface-color-2); border-left: 4px solid var(--primary-color); color: var(--text-color-light); border-radius: 6px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); animation: toast-in 0.5s; display: flex; align-items: center; gap: 10px; }
+        .toast.success { border-color: var(--success-color); } .toast.error { border-color: var(--danger-color); }
+    </style>
+</head>
+<body>
+    <svg width="0" height="0" style="display:none;">
+        <defs>
+            <symbol id="icon-add" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
+            <symbol id="icon-edit" viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83l3.75 3.75l1.83-1.83z"/></symbol>
+            <symbol id="icon-delete" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+            <symbol id="icon-lock" viewBox="0 0 24 24"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2s2 .9 2 2s-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/></symbol>
+            <symbol id="icon-unlock" viewBox="0 0 24 24"><path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h2c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2s2 .9 2 2s-.9 2-2 2z"/></symbol>
+            <symbol id="icon-reboot" viewBox="0 0 24 24"><path fill="currentColor" d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6s-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8s-3.58-8-8-8z"/></symbol>
+            <symbol id="icon-shutdown" viewBox="0 0 24 24"><path fill="currentColor" d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/></symbol>
+            <symbol id="icon-success" viewBox="0 0 24 24"><path fill="currentColor" d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></symbol>
+            <symbol id="icon-error" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></symbol>
+        </defs>
+    </svg>
+    <div id="toast-container"></div>
+    <div class="titlebar">
+        <div class="titlebar-title">管理面板 - <span id="status"></span><div id="network-indicator" class="network-indicator"></div></div>
+        <div class="window-controls"><button id="pin-btn">📌</button><button id="minimize-btn">-</button><button id="maximize-btn">+</button><button id="close-btn">×</button></div>
+    </div>
+    <div class="main-container">
+        <div class="grid-container">
+            <div class="card">
+                <h2><svg><use href="#icon-unlock"/></svg>实时在线客户端</h2>
+                <table id="active-clients-table"><thead><tr><th>用户名</th><th>上机时间</th><th>当前余额</th><th>状态</th><th>操作</th></tr></thead><tbody></tbody></table>
+            </div>
+            <div>
+                <div class="card">
+                    <h2><svg><use href="#icon-edit"/></svg>系统设置 & 充值</h2>
+                    <div class="form-row"><label>计费周期(分钟)</label><input type="number" id="setting-billing-interval" min="1"></div>
+                    <button onclick="updateSettings()">保存设置</button>
+                    <hr style="border-color: var(--border-color); border-style: dashed; margin: 20px 0;">
+                    <div class="form-row"><input id="recharge-username" placeholder="用户名"><input id="recharge-amount" placeholder="金额"></div>
+                    <button onclick="recharge()">充值</button>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <h2><svg><use href="#icon-edit"/></svg>用户管理 <button class="card-header-action" onclick="openUserModal()"><svg><use href="#icon-add"/></svg></button></h2>
+            <table id="all-users-table"><thead><tr><th>用户名</th><th>费率/分</th><th>余额</th><th>操作</th></tr></thead><tbody></tbody></table>
+        </div>
+    </div>
+
+    <div id="user-modal" class="modal"><div class="modal-content"><h2 id="modal-title"></h2><div class="form-row"><label>用户名</label><input id="modal-username"></div><div class="form-row"><label>密码</label><input id="modal-password" type="password" placeholder="留空则不修改"></div><div class="form-row"><label>费率</label><input id="modal-rate" type="number" step="0.1"></div><div class="form-actions"><button onclick="closeUserModal()">取消</button><button class="primary" onclick="saveUser()">保存</button></div></div></div>
+
+    <script>
+        let isEditMode = false, editUsername = null; window.allUsers = {};
+        const pinBtn = document.getElementById('pin-btn');
+        pinBtn.addEventListener('click', async () => pinBtn.classList.toggle('pinned', await window.electronAPI.invoke('toggle-always-on-top')));
+        document.getElementById('minimize-btn').addEventListener('click', () => window.electronAPI.send('minimize-window'));
+        document.getElementById('maximize-btn').addEventListener('click', () => window.electronAPI.send('maximize-window'));
+        document.getElementById('close-btn').addEventListener('click', () => window.electronAPI.send('close-window'));
+        pinBtn.classList.add('pinned');
+
+        const indicator = document.getElementById('network-indicator');
+        function setIndicatorState(state) { indicator.className = `network-indicator ${state}`; }
+        function showToast(message, type = 'success') { const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = `toast ${type}`; toast.innerHTML = `<svg><use href="#icon-${type}"/></svg> ${message}`; container.appendChild(toast); setTimeout(() => { toast.remove(); }, 3000); }
+        
+        let ws;
+        async function apiCall(endpoint, method, body) { try { const opts = { method, headers: { 'Content-Type': 'application/json' } }; if (body) opts.body = JSON.stringify(body); const response = await fetch(`http://localhost:3000/api${endpoint}`, opts); return response.json(); } catch (error) { return { success: false, message: `请求失败: ${error.message}` }; } }
+        window.controlClient = (username, action) => { apiCall(`/control/${username}`, 'POST', { action }).then(res => showToast(res.message, res.success ? 'success' : 'error')); }
+
+        const userModal = document.getElementById('user-modal');
+        function openUserModal(username = null) {
+            isEditMode = !!username; editUsername = username;
+            document.getElementById('modal-username').disabled = isEditMode;
+            document.getElementById('modal-title').textContent = isEditMode ? `编辑: ${username}` : '添加用户';
+            document.getElementById('modal-password').value = '';
+            if (isEditMode) { const user = window.allUsers[username]; document.getElementById('modal-username').value = username; document.getElementById('modal-rate').value = user.rate; } 
+            else { document.getElementById('modal-username').value = ''; document.getElementById('modal-rate').value = ''; }
+            userModal.classList.add('visible');
+        }
+        function closeUserModal() { userModal.classList.remove('visible'); }
+        async function saveUser() {
+            const username = document.getElementById('modal-username').value;
+            const password = document.getElementById('modal-password').value;
+            const rate = document.getElementById('modal-rate').value;
+            const body = { rate: parseFloat(rate) };
+            if (password) body.password = password;
+            if (!isEditMode) body.username = username;
+            const result = await apiCall(isEditMode ? `/users/${username}` : '/users', isEditMode ? 'PUT' : 'POST', body);
+            showToast(result.message, result.success ? 'success' : 'error');
+            if (result.success) closeUserModal();
+        }
+        async function deleteUser(username) { if (confirm(`确定删除 ${username}？`)) { const result = await apiCall(`/users/${username}`, 'DELETE'); showToast(result.message, result.success ? 'success' : 'error'); } }
+
+        async function updateSettings() { const result = await apiCall('/settings', 'PUT', { billingIntervalMinutes: parseFloat(document.getElementById('setting-billing-interval').value) }); showToast(result.message, result.success ? 'success' : 'error'); }
+        async function recharge() { const username = document.getElementById('recharge-username').value; const amount = document.getElementById('recharge-amount').value; const res = await fetch('http://localhost:3000/recharge', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, amount }) }); const result = await res.json(); showToast(result.message, result.success ? 'success' : 'error'); }
+        
+        function updateUI(data) {
+            window.allUsers = data.allUsers;
+            const activeClientsTbody = document.querySelector('#active-clients-table tbody');
+            activeClientsTbody.innerHTML = '';
+            data.clients.forEach(c => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${c.username}</td><td>${new Date(c.startTime).toLocaleTimeString()}</td><td>¥${(c.balance || 0).toFixed(2)}</td><td>${c.isLocked ? '已锁定' : '在线'}</td>`;
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'actions';
+                const lockBtnHTML = c.isLocked ? `<button title="解锁"><svg><use href="#icon-unlock"/></svg></button>` : `<button title="锁定"><svg><use href="#icon-lock"/></svg></button>`;
+                const rebootBtnHTML = `<button title="重启"><svg><use href="#icon-reboot"/></svg></button>`;
+                const shutdownBtnHTML = `<button title="关机"><svg><use href="#icon-shutdown"/></svg></button>`;
+                actionsCell.innerHTML = lockBtnHTML + rebootBtnHTML + shutdownBtnHTML;
+                actionsCell.children[0].onclick = () => controlClient(c.username, c.isLocked ? 'unlock' : 'lock');
+                actionsCell.children[1].onclick = () => controlClient(c.username, 'reboot');
+                actionsCell.children[2].onclick = () => controlClient(c.username, 'shutdown');
+                row.appendChild(actionsCell);
+                activeClientsTbody.appendChild(row);
+            });
+
+            const allUsersTbody = document.querySelector('#all-users-table tbody');
+            allUsersTbody.innerHTML = '';
+            for (const username in data.allUsers) {
+                const user = data.allUsers[username];
+                const row = document.createElement('tr');
+                row.innerHTML = `<td>${username}</td><td>${user.rate.toFixed(2)}</td><td>${user.balance.toFixed(2)}</td>`;
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'actions';
+                actionsCell.innerHTML = `<button title="编辑"><svg><use href="#icon-edit"/></svg></button><button title="删除"><svg><use href="#icon-delete"/></svg></button>`;
+                actionsCell.children[0].onclick = () => openUserModal(username);
+                actionsCell.children[1].onclick = () => deleteUser(username);
+                row.appendChild(actionsCell);
+                allUsersTbody.appendChild(row);
+            }
+
+            document.getElementById('setting-billing-interval').value = data.settings.billingIntervalMinutes;
+        }
+
+        function connect() {
+            ws = new WebSocket(`ws://localhost:3000`);
+            ws.onopen = () => { document.getElementById('status').textContent = '已连接'; setIndicatorState('connected'); ws.send(JSON.stringify({ type: 'admin_login' })); };
+            ws.onmessage = (event) => { const data = JSON.parse(event.data); if (data.type === 'admin_update') updateUI(data); };
+            ws.onclose = () => { document.getElementById('status').textContent = '正在重连...'; setIndicatorState('reconnecting'); setTimeout(connect, 5000); };
+            ws.onerror = (err) => { document.getElementById('status').textContent = '连接失败'; setIndicatorState('error'); console.error('WS Error', err); };
+        }
+        connect();
+    </script>
+</body>
+</html>
