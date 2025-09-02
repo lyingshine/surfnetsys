@@ -2,72 +2,85 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8"><title>幻影在线</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+SC:wght@300;400;700&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+SC:wght@300;400;700&display=swap');
         :root {
-            --primary-glow: #00bfff;
+            --primary-glow: #00d1ff;
             --primary-color: #00aaff;
-            --background-color: #12141a;
-            --surface-color: rgba(23, 26, 33, 0.85);
+            --background-color: #0d0f13;
+            --surface-color: rgba(23, 26, 33, 0.8);
             --text-color: #e1e3e6;
             --text-color-dark: #8a9199;
-            --border-color: rgba(0, 191, 255, 0.2);
+            --border-color: rgba(0, 191, 255, 0.25);
             --danger-color: #ff4757;
+            --danger-glow: rgba(255, 71, 87, 0.5);
             --connected-color: #28a745; --reconnecting-color: #ffc107; --error-color: #dc3545;
             --font-family-main: 'Noto Sans SC', sans-serif;
             --font-family-digital: 'Orbitron', sans-serif;
         }
         body { font-family: var(--font-family-main); background-color: var(--background-color); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; color: var(--text-color); -webkit-font-smoothing: antialiased; }
-        .background-grid { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(rgba(0,191,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,191,255,0.1) 1px, transparent 1px); background-size: 20px 20px; z-index: -1; animation: pan-grid 60s linear infinite; }
-        @keyframes pan-grid { from { background-position: 0 0; } to { background-position: 240px 240px; } }
-        .titlebar { -webkit-app-region: drag; height: 32px; display: flex; justify-content: flex-end; align-items: center; padding: 0 8px; background: rgba(0,0,0,0.2); }
-        .network-indicator { -webkit-app-region: no-drag; position: absolute; left: 12px; top: 11px; width: 10px; height: 10px; border-radius: 50%; transition: all 0.3s ease; }
-        .network-indicator.connected { background-color: var(--connected-color); box-shadow: 0 0 8px var(--connected-color); }
-        .network-indicator.reconnecting { background-color: var(--reconnecting-color); }
+        .background-grid { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(rgba(0,191,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(0,191,255,0.08) 1px, transparent 1px); background-size: 25px 25px; z-index: -1; animation: pan-grid 80s linear infinite; }
+        @keyframes pan-grid { from { background-position: 0 0; } to { background-position: 400px 400px; } }
+        .titlebar { -webkit-app-region: drag; height: 40px; display: flex; justify-content: flex-end; align-items: center; padding: 0 10px; background: rgba(0,0,0,0.2); border-bottom: 1px solid var(--border-color); }
+        .network-indicator { -webkit-app-region: no-drag; position: absolute; left: 16px; top: 14px; width: 12px; height: 12px; border-radius: 50%; transition: all 0.3s ease; }
+        .network-indicator.connected { background-color: var(--connected-color); box-shadow: 0 0 10px var(--connected-color); }
+        .network-indicator.reconnecting { background-color: var(--reconnecting-color); animation: pulse 1.5s infinite; }
         .network-indicator.error { background-color: var(--error-color); }
-        .window-controls button { -webkit-app-region: no-drag; background: transparent; border: none; width: 28px; height: 28px; color: var(--text-color-dark); cursor: pointer; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; transition: all 0.2s ease; }
+        @keyframes pulse { 0% { box-shadow: 0 0 5px var(--reconnecting-color); } 50% { box-shadow: 0 0 15px var(--reconnecting-color); } 100% { box-shadow: 0 0 5px var(--reconnecting-color); } }
+        .window-controls button { -webkit-app-region: no-drag; background: transparent; border: none; width: 32px; height: 32px; color: var(--text-color-dark); cursor: pointer; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; transition: all 0.2s ease; }
         .window-controls button:hover { background-color: var(--surface-color); color: var(--text-color); }
         .window-controls .pin-btn.pinned { color: var(--primary-color); }
         .main-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 20px; position: relative; }
-        .content-wrapper { width: 100%; max-width: 320px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 25px; box-shadow: 0 0 30px rgba(0,191,255,0.1); backdrop-filter: blur(10px); }
-        .logo { text-align: center; margin-bottom: 20px; font-family: var(--font-family-digital); font-size: 24px; color: var(--primary-color); text-shadow: 0 0 10px var(--primary-glow); }
-        .logo span { font-family: var(--font-family-main); font-size: 16px; color: var(--text-color); display: block; opacity: 0.8; margin-top: 4px; }
+        .content-wrapper { width: 100%; max-width: 340px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 32px; box-shadow: 0 0 40px rgba(0,191,255,0.15); backdrop-filter: blur(12px); }
+        .logo { text-align: center; margin-bottom: 28px; font-family: var(--font-family-digital); font-size: 28px; color: var(--primary-color); text-shadow: 0 0 12px var(--primary-glow); }
+        .logo span { font-family: var(--font-family-main); font-size: 16px; color: var(--text-color); display: block; opacity: 0.8; margin-top: 6px; }
         .login-form, .status-display { display: none; }
         .visible { display: block; animation: fadeIn 0.5s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        input { width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); background-color: rgba(0,0,0,0.3); border-radius: 4px; font-size: 14px; text-align: center; color: var(--text-color); transition: all 0.2s; }
-        input:focus { border-color: var(--primary-color); box-shadow: 0 0 10px var(--primary-glow); outline: none; }
-        button { width: 100%; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 700; transition: all 0.2s ease; }
-        button:hover { background: var(--primary-glow); box-shadow: 0 0 15px var(--primary-glow); }
-        .session-info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
-        .info-box { background-color: rgba(0,0,0,0.2); padding: 12px; border-radius: 4px; text-align: center; border: 1px solid transparent; transition: all 0.2s ease; }
-        .info-box:hover { border-color: var(--border-color); }
-        .info-box h4 { margin: 0 0 8px 0; color: var(--text-color-dark); font-weight: 400; font-size: 13px; }
-        .info-box p { margin: 0; color: var(--text-color); font-size: 20px; font-weight: 700; font-family: var(--font-family-digital); }
-        #logout-btn { background: var(--danger-color); margin-top: 15px; }
-        #logout-btn:hover { background: #ff6b81; box-shadow: 0 0 15px #ff6b81; }
-        .lock-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.9); color: white; display: none; justify-content: center; align-items: center; font-size: 32px; font-weight: bold; z-index: 10; backdrop-filter: blur(5px); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .input-group { position: relative; margin-bottom: 16px; }
+        .input-group svg { position: absolute; left: 14px; top: 13px; width: 18px; height: 18px; color: var(--text-color-dark); }
+        input { width: 100%; box-sizing: border-box; padding: 12px 12px 12px 42px; border: 1px solid var(--border-color); background-color: rgba(0,0,0,0.3); border-radius: 8px; font-size: 14px; color: var(--text-color); transition: all 0.2s; }
+        input:focus { border-color: var(--primary-color); box-shadow: 0 0 15px var(--primary-glow); outline: none; }
+        button { width: 100%; padding: 14px; background: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 700; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 1px; }
+        button:hover { background: var(--primary-glow); box-shadow: 0 0 20px var(--primary-glow); transform: translateY(-2px); }
+        .session-info { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+        .info-box { background-color: rgba(0,0,0,0.25); padding: 16px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color); transition: all 0.2s ease; }
+        .info-box:hover { border-color: var(--primary-color); transform: translateY(-2px); box-shadow: 0 0 10px rgba(0,191,255,0.2); }
+        .info-box h4 { margin: 0 0 10px 0; color: var(--text-color-dark); font-weight: 400; font-size: 13px; text-transform: uppercase; }
+        .info-box p { margin: 0; color: var(--text-color); font-size: 22px; font-weight: 700; font-family: var(--font-family-digital); }
+        #logout-btn { background: transparent; border: 1px solid var(--danger-color); color: var(--danger-color); margin-top: 15px; }
+        #logout-btn:hover { background: var(--danger-color); color: white; box-shadow: 0 0 20px var(--danger-glow); }
+        .lock-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.9); color: white; display: none; flex-direction: column; justify-content: center; align-items: center; font-size: 36px; font-weight: bold; z-index: 10; backdrop-filter: blur(8px); text-shadow: 0 0 15px white; }
         .lock-overlay.visible { display: flex; }
+        .lock-overlay svg { width: 60px; height: 60px; margin-bottom: 20px; }
     </style>
 </head>
 <body>
     <div class="background-grid"></div>
     <div class="titlebar">
         <div id="network-indicator" class="network-indicator"></div>
-        <div class="window-controls"><button id="pin-btn">📌</button><button id="minimize-btn">-</button><button id="close-btn">×</button></div>
+        <div class="window-controls"><button id="pin-btn" class="pin-btn">📌</button><button id="minimize-btn">-</button><button id="close-btn">×</button></div>
     </div>
     <div class="main-container">
         <div class="content-wrapper">
             <div class="logo">PHANTOM ONLINE<span>幻影在线</span></div>
             <div id="login-view" class="login-form visible">
-                <input type="text" id="username" placeholder="用户名" required>
-                <input type="password" id="password" placeholder="密码" required>
+                <div class="input-group">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                    <input type="text" id="username" placeholder="用户名" required>
+                </div>
+                <div class="input-group">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                    <input type="password" id="password" placeholder="密码" required>
+                </div>
                 <button id="login-btn">登 录</button>
             </div>
             <div id="status-view" class="status-display">
                 <div class="session-info">
                     <div class="info-box"><h4>总余额</h4><p id="balance">¥0.00</p></div>
-                    <div class="info-box"><h4>费率 (元/小时)</h4><p id="rate">¥0.00</p></div>
+                    <div class="info-box"><h4>费率</h4><p id="rate">¥0.00/H</p></div>
                     <div class="info-box"><h4>已上机</h4><p id="session-timer">00:00:00</p></div>
                     <div class="info-box"><h4>本次消费</h4><p id="session-cost">¥0.00</p></div>
                 </div>
@@ -75,7 +88,10 @@
             </div>
         </div>
     </div>
-    <div id="lock-overlay" class="lock-overlay">已锁定</div>
+    <div id="lock-overlay" class="lock-overlay">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        已锁定
+    </div>
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -112,12 +128,13 @@
             };
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
+                const lockOverlay = document.getElementById('lock-overlay');
                 switch (data.type) {
                     case 'login_success':
                         document.getElementById('login-view').classList.remove('visible');
                         document.getElementById('status-view').classList.add('visible');
                         balanceEl.textContent = `¥${data.balance.toFixed(2)}`;
-                        document.getElementById('rate').textContent = `¥${data.rate.toFixed(2)}`;
+                        document.getElementById('rate').textContent = `¥${data.rate.toFixed(2)}/H`;
                         sessionCostEl.textContent = `¥0.00`;
                         startSessionTimer(data.startTime);
                         break;
@@ -126,11 +143,11 @@
                         balanceEl.textContent = `¥${data.balance.toFixed(2)}`;
                         sessionCostEl.textContent = `¥${data.sessionCost.toFixed(2)}`;
                         break;
-                    case 'lock': document.getElementById('lock-overlay').classList.add('visible'); break;
-                    case 'unlock': document.getElementById('lock-overlay').classList.remove('visible'); break;
+                    case 'lock': lockOverlay.classList.add('visible'); break;
+                    case 'unlock': lockOverlay.classList.remove('visible'); break;
                     case 'admin_message': alert(`来自管理员的消息: ${data.message}`); break;
-                    case 'reboot': document.getElementById('lock-overlay').textContent = '正在重启...'; document.getElementById('lock-overlay').classList.add('visible'); setTimeout(() => ws.close(), 3000); break;
-                    case 'shutdown': document.getElementById('lock-overlay').textContent = '正在关机...'; document.getElementById('lock-overlay').classList.add('visible'); setTimeout(() => ws.close(), 3000); break;
+                    case 'reboot': lockOverlay.innerHTML = '正在重启...'; lockOverlay.classList.add('visible'); setTimeout(() => ws.close(), 3000); break;
+                    case 'shutdown': lockOverlay.innerHTML = '正在关机...'; lockOverlay.classList.add('visible'); setTimeout(() => ws.close(), 3000); break;
                     case 'force_logout': alert(data.message); ws.close(); break;
                 }
             };
@@ -138,8 +155,9 @@
                 setIndicatorState('reconnecting');
                 document.getElementById('login-view').classList.add('visible');
                 document.getElementById('status-view').classList.remove('visible');
-                document.getElementById('lock-overlay').classList.remove('visible');
-                document.getElementById('lock-overlay').textContent = '已锁定';
+                const lockOverlay = document.getElementById('lock-overlay');
+                lockOverlay.classList.remove('visible');
+                lockOverlay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> 已锁定`;
                 clearInterval(sessionTimerInterval);
             };
             ws.onerror = (err) => { setIndicatorState('error'); }

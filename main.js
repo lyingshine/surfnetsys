@@ -24,7 +24,7 @@ function createClientWindow() {
 
 function createAdminWindow() {
     const win = new BrowserWindow({
-        width: 800, height: 600, frame: false, alwaysOnTop: true,
+        width: 900, height: 675, frame: false, alwaysOnTop: true,
         backgroundColor: '#F7F7F7', webPreferences: { preload: path.join(__dirname, 'preload.js') }
     });
     win.loadFile('admin.html');

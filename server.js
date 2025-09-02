@@ -28,7 +28,8 @@ function startServer() {
                     balance: db.users[c.user.username]?.balance,
                     isLocked: c.isLocked
                 })),
-                allUsers: db.users
+                allUsers: db.users,
+                session_logs: db.session_logs.slice(0, 100) // 发送最新的100条日志
             };
             const stateString = JSON.stringify(state);
             wss.clients.forEach(client => {
@@ -69,6 +70,12 @@ function startServer() {
     }
 
     wss.on('connection', (ws) => {
+        const heartbeat = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping' }));
+            }
+        }, 10000);
+
         ws.on('message', (message) => {
             try {
                 const data = JSON.parse(message);
@@ -95,6 +102,7 @@ function startServer() {
         });
 
         ws.on('close', () => {
+            clearInterval(heartbeat); // 清除心跳
             if (!activeClients.has(ws)) return;
             const clientData = activeClients.get(ws);
             clearInterval(clientData.intervalId);
