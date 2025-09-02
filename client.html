@@ -1,63 +1,84 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8"><title>Client</title>
+    <meta charset="UTF-8"><title>幻影在线</title>
     <style>
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes balance-flash { 0% { color: #00ff9d; text-shadow: 0 0 10px #00ff9d; } 100% { color: var(--text-color-light); text-shadow: none; } }
-        @keyframes title-pulse { 0% { color: var(--text-color-light); } 50% { color: white; } 100% { color: var(--text-color-light); } }
-        @keyframes pulse-yellow { 0% { background-color: #ffc107; box-shadow: 0 0 0 0 rgba(255,193,7,0.4); } 70% { background-color: #ffc107; box-shadow: 0 0 0 10px rgba(255,193,7,0); } 100% { background-color: #ffc107; box-shadow: 0 0 0 0 rgba(255,193,7,0); } }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+SC:wght@300;400;700&display=swap');
         :root {
-            --primary-color: #00aaff; --primary-gradient: linear-gradient(45deg, #00aaff, #0077cc);
-            --glow-color: rgba(0, 170, 255, 0.4); --background-color: #1a1c20;
-            --surface-color: #24272c; --text-color-light: #e1e3e6; --text-color-dark: #8a9199;
-            --border-color: #3a3f46; --border-radius: 12px; --font-family: 'Segoe UI', 'Roboto', system-ui, sans-serif;
+            --primary-glow: #00bfff;
+            --primary-color: #00aaff;
+            --background-color: #12141a;
+            --surface-color: rgba(23, 26, 33, 0.85);
+            --text-color: #e1e3e6;
+            --text-color-dark: #8a9199;
+            --border-color: rgba(0, 191, 255, 0.2);
+            --danger-color: #ff4757;
             --connected-color: #28a745; --reconnecting-color: #ffc107; --error-color: #dc3545;
+            --font-family-main: 'Noto Sans SC', sans-serif;
+            --font-family-digital: 'Orbitron', sans-serif;
         }
-        body { font-family: var(--font-family); background-color: var(--background-color); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; color: var(--text-color-light); }
-        .titlebar { -webkit-app-region: drag; height: 40px; display: flex; justify-content: flex-end; align-items: center; padding: 0 8px; position: relative; }
-        .network-indicator { -webkit-app-region: no-drag; position: absolute; left: 15px; top: 15px; width: 10px; height: 10px; border-radius: 50%; transition: background-color 0.3s; }
-        .network-indicator.connected { background-color: var(--connected-color); }
-        .network-indicator.reconnecting { background-color: var(--reconnecting-color); animation: pulse-yellow 2s infinite; }
+        body { font-family: var(--font-family-main); background-color: var(--background-color); margin: 0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; color: var(--text-color); -webkit-font-smoothing: antialiased; }
+        .background-grid { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(rgba(0,191,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,191,255,0.1) 1px, transparent 1px); background-size: 20px 20px; z-index: -1; animation: pan-grid 60s linear infinite; }
+        @keyframes pan-grid { from { background-position: 0 0; } to { background-position: 240px 240px; } }
+        .titlebar { -webkit-app-region: drag; height: 32px; display: flex; justify-content: flex-end; align-items: center; padding: 0 8px; background: rgba(0,0,0,0.2); }
+        .network-indicator { -webkit-app-region: no-drag; position: absolute; left: 12px; top: 11px; width: 10px; height: 10px; border-radius: 50%; transition: all 0.3s ease; }
+        .network-indicator.connected { background-color: var(--connected-color); box-shadow: 0 0 8px var(--connected-color); }
+        .network-indicator.reconnecting { background-color: var(--reconnecting-color); }
         .network-indicator.error { background-color: var(--error-color); }
-        .window-controls button { -webkit-app-region: no-drag; background: none; border: none; width: 32px; height: 32px; font-size: 16px; color: var(--text-color-dark); cursor: pointer; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; transition: background-color 0.2s, color 0.2s; }
-        .window-controls button:hover { background-color: var(--surface-color); color: var(--text-color-light); }
+        .window-controls button { -webkit-app-region: no-drag; background: transparent; border: none; width: 28px; height: 28px; color: var(--text-color-dark); cursor: pointer; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; transition: all 0.2s ease; }
+        .window-controls button:hover { background-color: var(--surface-color); color: var(--text-color); }
         .window-controls .pin-btn.pinned { color: var(--primary-color); }
-        .window-controls .close-btn:hover { background-color: #e81123; color: white; }
-        .main-container { background-color: var(--surface-color); border-radius: var(--border-radius); border: 1px solid var(--border-color); box-shadow: 0 8px 32px rgba(0,0,0,0.4); margin: 0 15px 15px 15px; flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 2.5rem; position: relative; animation: fadeIn 0.5s ease-out; }
-        h2 { color: var(--text-color-light); margin-top: 0; margin-bottom: 2rem; font-weight: 600; font-size: 24px; animation: title-pulse 5s infinite; }
-        .login-form, .status-display { display: none; width: 100%; text-align: center; }
-        .visible { display: flex; flex-direction: column; align-items: center; }
-        input { width: 90%; padding: 14px; margin-bottom: 1rem; border: 1px solid var(--border-color); background-color: var(--background-color); border-radius: var(--border-radius); font-size: 16px; text-align: center; color: var(--text-color-light); transition: all 0.2s; }
-        input:focus { border-color: var(--primary-color); box-shadow: 0 0 8px var(--glow-color); outline: none; }
-        button { width: 95%; padding: 14px; background-image: var(--primary-gradient); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.2s ease-out; text-shadow: 0 0 8px rgba(0,0,0,0.5); }
-        button:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        button:active { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
-        .session-info { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 2rem; margin: 1.5rem 0; text-align: center; width: 100%; }
-        .info-box { background-color: var(--background-color); padding: 15px; border-radius: var(--border-radius); transition: transform 0.2s, background-color 0.2s; }
-        .info-box:hover { transform: translateY(-5px); background-color: var(--surface-color-2); }
-        .info-box h4 { margin: 0 0 8px 0; color: var(--text-color-dark); font-weight: 500; font-size: 14px; text-transform: uppercase; }
-        .info-box p { margin: 0; color: var(--text-color-light); font-size: 20px; font-weight: 600; }
-        #balance, #session-cost { font-family: 'Courier New', monospace; }
-        .balance-flash { animation: balance-flash 0.8s ease-out; }
-        #logout-btn { background: #4f545c; margin-top: 2rem; }
-        #logout-btn:hover { background: #686e78; box-shadow: none; }
-        .lock-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(10, 10, 10, 0.8); background-image: url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.05' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E"); color: white; display: none; justify-content: center; align-items: center; font-size: 36px; font-weight: bold; border-radius: var(--border-radius); z-index: 10; }
+        .main-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-direction: column; padding: 20px; position: relative; }
+        .content-wrapper { width: 100%; max-width: 320px; background: var(--surface-color); border: 1px solid var(--border-color); border-radius: 8px; padding: 25px; box-shadow: 0 0 30px rgba(0,191,255,0.1); backdrop-filter: blur(10px); }
+        .logo { text-align: center; margin-bottom: 20px; font-family: var(--font-family-digital); font-size: 24px; color: var(--primary-color); text-shadow: 0 0 10px var(--primary-glow); }
+        .logo span { font-family: var(--font-family-main); font-size: 16px; color: var(--text-color); display: block; opacity: 0.8; margin-top: 4px; }
+        .login-form, .status-display { display: none; }
+        .visible { display: block; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        input { width: 100%; box-sizing: border-box; padding: 12px; margin-bottom: 12px; border: 1px solid var(--border-color); background-color: rgba(0,0,0,0.3); border-radius: 4px; font-size: 14px; text-align: center; color: var(--text-color); transition: all 0.2s; }
+        input:focus { border-color: var(--primary-color); box-shadow: 0 0 10px var(--primary-glow); outline: none; }
+        button { width: 100%; padding: 12px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 700; transition: all 0.2s ease; }
+        button:hover { background: var(--primary-glow); box-shadow: 0 0 15px var(--primary-glow); }
+        .session-info { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+        .info-box { background-color: rgba(0,0,0,0.2); padding: 12px; border-radius: 4px; text-align: center; border: 1px solid transparent; transition: all 0.2s ease; }
+        .info-box:hover { border-color: var(--border-color); }
+        .info-box h4 { margin: 0 0 8px 0; color: var(--text-color-dark); font-weight: 400; font-size: 13px; }
+        .info-box p { margin: 0; color: var(--text-color); font-size: 20px; font-weight: 700; font-family: var(--font-family-digital); }
+        #logout-btn { background: var(--danger-color); margin-top: 15px; }
+        #logout-btn:hover { background: #ff6b81; box-shadow: 0 0 15px #ff6b81; }
+        .lock-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.9); color: white; display: none; justify-content: center; align-items: center; font-size: 32px; font-weight: bold; z-index: 10; backdrop-filter: blur(5px); }
         .lock-overlay.visible { display: flex; }
     </style>
 </head>
 <body>
+    <div class="background-grid"></div>
     <div class="titlebar">
         <div id="network-indicator" class="network-indicator"></div>
         <div class="window-controls"><button id="pin-btn">📌</button><button id="minimize-btn">-</button><button id="close-btn">×</button></div>
     </div>
     <div class="main-container">
-        <div id="login-view" class="login-form visible"><h2>用户登录</h2><input type="text" id="username" placeholder="用户名" required><input type="password" id="password" placeholder="密码" required><button id="login-btn">登录</button></div>
-        <div id="status-view" class="status-display"><h2>欢迎, <span id="display-username"></span>!</h2><div class="session-info"><div class="info-box"><h4>总余额</h4><p id="balance">¥0.00</p></div><div class="info-box"><h4>费率</h4><p id="rate">¥0.0/分</p></div><div class="info-box"><h4>已上机</h4><p id="session-timer">00:00:00</p></div><div class="info-box"><h4>本次消费</h4><p id="session-cost">¥0.00</p></div></div><button id="logout-btn">安全登出</button></div>
-        <div id="lock-overlay" class="lock-overlay">已锁定</div>
+        <div class="content-wrapper">
+            <div class="logo">PHANTOM ONLINE<span>幻影在线</span></div>
+            <div id="login-view" class="login-form visible">
+                <input type="text" id="username" placeholder="用户名" required>
+                <input type="password" id="password" placeholder="密码" required>
+                <button id="login-btn">登 录</button>
+            </div>
+            <div id="status-view" class="status-display">
+                <div class="session-info">
+                    <div class="info-box"><h4>总余额</h4><p id="balance">¥0.00</p></div>
+                    <div class="info-box"><h4>费率 (元/小时)</h4><p id="rate">¥0.00</p></div>
+                    <div class="info-box"><h4>已上机</h4><p id="session-timer">00:00:00</p></div>
+                    <div class="info-box"><h4>本次消费</h4><p id="session-cost">¥0.00</p></div>
+                </div>
+                <button id="logout-btn">安全下机</button>
+            </div>
+        </div>
     </div>
+    <div id="lock-overlay" class="lock-overlay">已锁定</div>
 
     <script>
+    document.addEventListener('DOMContentLoaded', () => {
         const pinBtn = document.getElementById('pin-btn');
         pinBtn.addEventListener('click', async () => pinBtn.classList.toggle('pinned', await window.electronAPI.invoke('toggle-always-on-top')));
         document.getElementById('minimize-btn').addEventListener('click', () => window.electronAPI.send('minimize-window'));
@@ -72,8 +93,7 @@
         const sessionCostEl = document.getElementById('session-cost');
         let sessionTimerInterval;
 
-        function flashElement(el) { el.classList.add('balance-flash'); setTimeout(() => el.classList.remove('balance-flash'), 800); }
-        function formatDuration(seconds) { const h = Math.floor(seconds / 3600).toString().padStart(2, '0'); const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0'); const s = (seconds % 60).toString().padStart(2, '0'); return `${h}:${m}:${s}`; }
+        function formatDuration(seconds) { const h = Math.floor(seconds / 3600).toString().padStart(2, '0'); const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0'); const s = Math.floor(seconds % 60).toString().padStart(2, '0'); return `${h}:${m}:${s}`; }
         function startSessionTimer(startTime) {
             if (sessionTimerInterval) clearInterval(sessionTimerInterval);
             const start = new Date(startTime);
@@ -96,9 +116,8 @@
                     case 'login_success':
                         document.getElementById('login-view').classList.remove('visible');
                         document.getElementById('status-view').classList.add('visible');
-                        document.getElementById('display-username').textContent = username;
                         balanceEl.textContent = `¥${data.balance.toFixed(2)}`;
-                        document.getElementById('rate').textContent = `¥${data.rate.toFixed(2)}/分`;
+                        document.getElementById('rate').textContent = `¥${data.rate.toFixed(2)}`;
                         sessionCostEl.textContent = `¥0.00`;
                         startSessionTimer(data.startTime);
                         break;
@@ -106,7 +125,6 @@
                     case 'balance_update':
                         balanceEl.textContent = `¥${data.balance.toFixed(2)}`;
                         sessionCostEl.textContent = `¥${data.sessionCost.toFixed(2)}`;
-                        flashElement(balanceEl); flashElement(sessionCostEl);
                         break;
                     case 'lock': document.getElementById('lock-overlay').classList.add('visible'); break;
                     case 'unlock': document.getElementById('lock-overlay').classList.remove('visible'); break;
@@ -124,13 +142,11 @@
                 document.getElementById('lock-overlay').textContent = '已锁定';
                 clearInterval(sessionTimerInterval);
             };
-            ws.onerror = (err) => {
-                setIndicatorState('error');
-                console.error('WebSocket Error:', err);
-            }
+            ws.onerror = (err) => { setIndicatorState('error'); }
         }
         document.getElementById('login-btn').addEventListener('click', connect);
         document.getElementById('logout-btn').addEventListener('click', () => { if (ws) ws.close(); });
+    });
     </script>
 </body>
 </html>

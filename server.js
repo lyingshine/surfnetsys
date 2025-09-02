@@ -4,30 +4,20 @@ const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 
-// This is the main function that starts the server.
 function startServer() {
     const app = express();
     app.use(express.json());
     const server = http.createServer(app);
     const wss = new WebSocket.Server({ server });
 
-    // Define paths for data and settings files.
     const DB_PATH = path.join(__dirname, 'db.json');
-    const SETTINGS_PATH = path.join(__dirname, 'settings.json');
-
-    // Load database and settings from files.
     let db = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
-    let settings = JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf8'));
-    // Ensure session_logs array exists.
     if (!db.session_logs) db.session_logs = [];
 
     const activeClients = new Map();
 
-    // Helper functions to save data.
     function saveDb() { fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf8'); }
-    function saveSettings() { fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2), 'utf8'); }
 
-    // Broadcasts the current state to all connected admin panels.
     function broadcastAdminState() {
         try {
             const state = {
@@ -38,41 +28,38 @@ function startServer() {
                     balance: db.users[c.user.username]?.balance,
                     isLocked: c.isLocked
                 })),
-                allUsers: db.users,
-                session_logs: db.session_logs.slice(-100),
-                settings: settings
+                allUsers: db.users
             };
             const stateString = JSON.stringify(state);
             wss.clients.forEach(client => {
-                if (client.isAdmin) {
-                    client.send(stateString);
-                }
+                if (client.isAdmin) client.send(stateString);
             });
         } catch (error) {
             console.error("[CRITICAL] Failed to broadcast admin state:", error);
         }
     }
 
-    // Manages the billing interval for a connected client.
     function startBilling(ws, username) {
         const clientData = activeClients.get(ws);
         if (!clientData) return;
 
-        const userRate = db.users[username]?.rate || 0.1;
-        const billingIntervalMs = (settings.billingIntervalMinutes || 1) * 60000;
+        const hourlyRate = db.users[username]?.rate || 0;
+        const costPer10Seconds = (hourlyRate / 3600) * 10;
+        const billingIntervalMs = 10000; // 10 seconds
 
         clientData.intervalId = setInterval(() => {
             if (clientData.isLocked) return;
             const currentUser = db.users[username];
-            if (!currentUser) { ws.close(); clearInterval(clientData.intervalId); return; }
+            if (!currentUser) {
+                ws.close();
+                clearInterval(clientData.intervalId);
+                return;
+            }
 
-            const sessionCost = (clientData.sessionCost || 0) + userRate;
-            clientData.sessionCost = sessionCost;
-
-            if (currentUser.balance >= userRate) {
-                currentUser.balance = parseFloat((currentUser.balance - userRate).toFixed(2));
-                ws.send(JSON.stringify({ type: 'balance_update', balance: currentUser.balance, sessionCost }));
-                broadcastAdminState();
+            if (currentUser.balance >= costPer10Seconds) {
+                currentUser.balance -= costPer10Seconds;
+                clientData.sessionCost = (clientData.sessionCost || 0) + costPer10Seconds;
+                ws.send(JSON.stringify({ type: 'balance_update', balance: currentUser.balance, sessionCost: clientData.sessionCost }));
             } else {
                 currentUser.balance = 0;
                 ws.send(JSON.stringify({ type: 'force_logout', message: '余额耗尽' }));
@@ -81,7 +68,6 @@ function startServer() {
         }, billingIntervalMs);
     }
 
-    // --- WebSocket Connection Logic ---
     wss.on('connection', (ws) => {
         ws.on('message', (message) => {
             try {
@@ -114,18 +100,20 @@ function startServer() {
             clearInterval(clientData.intervalId);
             const endTime = new Date();
             const duration = Math.round((endTime - clientData.startTime) / 60000);
-            db.session_logs.unshift({ username: clientData.user.username, startTime: clientData.startTime.toISOString(), endTime: endTime.toISOString(), duration, cost: clientData.sessionCost || 0 });
+            const finalCost = parseFloat((clientData.sessionCost || 0).toFixed(2));
+            db.session_logs.unshift({ username: clientData.user.username, startTime: clientData.startTime.toISOString(), endTime: endTime.toISOString(), duration, cost: finalCost });
+            if(db.users[clientData.user.username]) {
+                db.users[clientData.user.username].balance = parseFloat(db.users[clientData.user.username].balance.toFixed(2));
+            }
             activeClients.delete(ws);
             saveDb();
             broadcastAdminState();
         });
     });
 
-    // --- API Routes ---
     const apiRouter = express.Router();
     app.use('/api', apiRouter);
 
-    // User CRUD
     apiRouter.post('/users', (req, res) => {
         const { username, password, rate } = req.body;
         if (!username || !password || rate === undefined) return res.status(400).json({ message: '缺少必要字段' });
@@ -157,19 +145,6 @@ function startServer() {
         res.json({ success: true, message: '用户删除成功' });
     });
 
-    // Settings
-    apiRouter.put('/settings', (req, res) => {
-        const { billingIntervalMinutes } = req.body;
-        if (billingIntervalMinutes === undefined || isNaN(parseFloat(billingIntervalMinutes)) || parseFloat(billingIntervalMinutes) <= 0) {
-            return res.status(400).json({ message: '无效的计费周期' });
-        }
-        settings.billingIntervalMinutes = parseFloat(billingIntervalMinutes);
-        saveSettings();
-        broadcastAdminState();
-        res.json({ success: true, message: '设置已更新' });
-    });
-
-    // Client Control
     apiRouter.post('/control/:username', (req, res) => {
         const { username } = req.params;
         const { action, message } = req.body;
@@ -188,8 +163,13 @@ function startServer() {
         res.json({ success: true, message: `${action} 指令已发送给 ${username}` });
     });
 
-    // Recharge
-    app.post('/recharge', (req, res) => {
+    apiRouter.get('/stats', (req, res) => {
+        const { period } = req.query;
+        const stats = getRevenueStats(db, period);
+        res.json({ success: true, stats });
+    });
+
+    apiRouter.post('/recharge', (req, res) => {
         const { username, amount } = req.body;
         const parsedAmount = parseFloat(amount);
         if (db.users[username] && !isNaN(parsedAmount) && parsedAmount > 0) {
@@ -208,6 +188,47 @@ function startServer() {
 
     const PORT = 3000;
     server.listen(PORT, () => console.log(`Server is now running on http://localhost:${PORT}`));
+}
+
+function getRevenueStats(db, period = 'today') {
+    const now = new Date();
+    let startDate;
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    switch (period) {
+        case 'week':
+            const firstDayOfWeek = today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1);
+            startDate = new Date(today.setDate(firstDayOfWeek));
+            break;
+        case 'month':
+            startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            break;
+        case 'all':
+            startDate = new Date(0);
+            break;
+        case 'today':
+        default:
+            startDate = today;
+            break;
+    }
+
+    const logs = db.session_logs.filter(log => {
+        if (!log.endTime) return false;
+        const logDate = new Date(log.endTime);
+        return logDate >= startDate;
+    });
+
+    const totalRevenue = logs.reduce((sum, log) => sum + (log.cost || 0), 0);
+    const totalDuration = logs.reduce((sum, log) => sum + (log.duration || 0), 0);
+
+    return {
+        period,
+        startDate: startDate.toISOString().slice(0, 10),
+        endDate: new Date().toISOString().slice(0, 10),
+        totalSessions: logs.length,
+        totalDuration,
+        totalRevenue: parseFloat(totalRevenue.toFixed(2))
+    };
 }
 
 module.exports = { startServer };

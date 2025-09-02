@@ -15,7 +15,7 @@ try { require('electron-reloader')(module); } catch (_) {}
 
 function createClientWindow() {
     const win = new BrowserWindow({
-        width: 420, height: 650, frame: false, alwaysOnTop: true,
+        width: 400, height: 600, frame: false, alwaysOnTop: true,
         backgroundColor: '#F7F7F7', webPreferences: { preload: path.join(__dirname, 'preload.js') }
     });
     win.loadFile('client.html');
@@ -24,7 +24,7 @@ function createClientWindow() {
 
 function createAdminWindow() {
     const win = new BrowserWindow({
-        width: 1200, height: 800, frame: false, alwaysOnTop: true,
+        width: 800, height: 600, frame: false, alwaysOnTop: true,
         backgroundColor: '#F7F7F7', webPreferences: { preload: path.join(__dirname, 'preload.js') }
     });
     win.loadFile('admin.html');
