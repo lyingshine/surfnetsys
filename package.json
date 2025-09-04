@@ -2,9 +2,11 @@
   "name": "surfnetsys",
   "version": "1.0.0",
   "description": "A network management system",
-  "main": "main.js",
+  "main": "start-client.js",
   "scripts": {
-    "start": "electron ."
+    "start": "npm run start:server && npm run start:client",
+    "start:server": "node start-server.js",
+    "start:client": "electron start-client.js"
   },
   "dependencies": {
     "express": "^4.18.2",

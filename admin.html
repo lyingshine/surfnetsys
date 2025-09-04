@@ -77,6 +77,12 @@
         .form-row label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 13px; }
         .form-row input { width: 100%; box-sizing: border-box; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background-color: var(--background-color); }
         .form-row input:focus { outline: none; border-color: var(--primary-color); background-color: var(--surface-color); box-shadow: 0 0 0 3px var(--primary-color-light); }
+        
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; margin-top: 16px; }
+        .stats-card { background-color: var(--surface-color); border-radius: var(--border-radius); padding: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); transition: all var(--transition-speed) ease; }
+        .stats-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+        .stats-label { font-size: 13px; color: var(--text-color-secondary); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stats-value { font-size: 20px; font-weight: 700; color: var(--text-color); font-family: monospace, 'Inter'; }
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.1); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.2s; }
         .modal.visible { display: flex; }
         .modal-content { padding: 32px; background-color: var(--surface-color); border-radius: 12px; width: 440px; box-shadow: var(--shadow-md); border: 1px solid var(--border-color); }
@@ -91,7 +97,7 @@
             <symbol id="icon-logs" viewBox="0 0 24 24"><path fill="currentColor" d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></symbol>
             <symbol id="icon-add" viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
             <symbol id="icon-edit" viewBox="0 0 24 24"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83l3.75 3.75l1.83-1.83z"/></symbol>
-            <symbol id="icon-delete" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+            <symbol id="icon-delete" viewBox="0 0 24 24"><path fill="currentColor" d="M6 19c0 1.1.9 2 2 2H8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
         </defs>
     </svg>
     <div class="sidebar">
@@ -101,6 +107,7 @@
             <a href="#" class="nav-item" data-view="users"><svg><use href="#icon-users"/></svg>用户管理</a>
             <a href="#" class="nav-item" data-view="finance"><svg><use href="#icon-finance"/></svg>财务中心</a>
             <a href="#" class="nav-item" data-view="logs"><svg><use href="#icon-logs"/></svg>系统日志</a>
+
         </nav>
         <div class="sidebar-footer">
             <div id="network-indicator"></div><span id="status" style="margin-left: 8px;"></span>
@@ -116,6 +123,7 @@
             <div id="view-users" class="view"><div class="card"><h2>用户管理</h2><table id="all-users-table"><thead><tr><th>用户名</th><th>费率 (元/小时)</th><th>余额</th><th>操作</th></tr></thead><tbody></tbody></table></div></div>
             <div id="view-finance" class="view"><div class="card"><h2>用户充值</h2><div class="form-row"><label>用户名</label><input id="recharge-username" placeholder="要充值的用户名"></div><div class="form-row"><label>金额</label><input id="recharge-amount" type="number" placeholder="充值金额"></div><button onclick="window.recharge()" class="primary">确认充值</button></div><div class="card" style="margin-top: 24px;"><h2>营收统计</h2><div id="stats-controls" style="margin-bottom: 16px; display: flex; gap: 8px;"><button class="secondary" onclick="window.updateStats('today')">今日</button><button class="secondary" onclick="window.updateStats('week')">本周</button><button class="secondary" onclick="window.updateStats('month')">本月</button><button class="secondary" onclick="window.updateStats('all')">全部</button></div><div id="stats-grid" class="grid-container"></div></div></div>
             <div id="view-logs" class="view"><div class="card"><h2>系统日志</h2><table id="logs-table"><thead><tr><th>时间</th><th>用户</th><th>事件</th><th>详情</th></tr></thead><tbody></tbody></table></div></div>
+
         </div>
     </div>
     <div id="user-modal" class="modal"><div class="modal-content"><h2 id="modal-title">添加新用户</h2><div class="form-row"><label>用户名</label><input id="modal-username"></div><div class="form-row"><label>密码</label><input id="modal-password" type="password" placeholder="留空则不修改"></div><div class="form-row"><label>费率 (元/小时)</label><input id="modal-rate" type="number" step="0.1"></div><div class="form-actions" style="text-align:right; margin-top:24px;"><button class="secondary" onclick="window.closeUserModal()">取消</button><button class="primary" onclick="window.saveUser()" style="margin-left:8px;">保存</button></div></div></div>
@@ -170,6 +178,7 @@
                 updateDeviceGrid(data.clients);
                 updateUsersTable(data.allUsers);
                 updateLogsTable(data.session_logs);
+
             }
 
             function updateDeviceGrid(clients) {
@@ -219,11 +228,50 @@
                 tbody.innerHTML = logs.length ? '' : '<tr><td colspan="4" style="text-align:center; padding: 40px;">没有日志</td></tr>';
                 logs.forEach(log => {
                     const row = tbody.insertRow();
-                    row.innerHTML = `<td>${new Date(log.endTime).toLocaleString()}</td><td>${log.username}</td><td>会话结束</td><td>时长: ${log.duration}分, 消费: ¥${log.cost.toFixed(2)}</td>`;
+                    const cost = log.cost || 0;
+                    const duration = log.duration || 0;
+                    row.innerHTML = `<td>${new Date(log.endTime).toLocaleString()}</td><td>${log.username}</td><td>会话结束</td><td>时长: ${duration}分, 消费: ¥${cost.toFixed(2)}</td>`;
                 });
             }
+
+
             
             window.controlClient = (username, action) => apiCall(`/control/${username}`, 'POST', { action });
+
+            window.updateStats = async (period = 'today') => {
+                try {
+                    const result = await apiCall(`/stats?period=${period}`, 'GET');
+                    if (result.success) {
+                        updateStatsGrid(result.stats);
+                    } else {
+                        alert(`获取统计信息失败: ${result.message}`);
+                    }
+                } catch (error) {
+                    alert('获取统计信息时发生错误');
+                }
+            };
+
+            function updateStatsGrid(stats) {
+                const grid = document.getElementById('stats-grid');
+                grid.innerHTML = '';
+                
+                const statsCards = [
+                    { label: '统计周期', value: `${stats.startDate} 至 ${stats.endDate}` },
+                    { label: '总会话数', value: stats.totalSessions },
+                    { label: '总时长', value: `${stats.totalDuration} 分钟` },
+                    { label: '总营收', value: `¥${stats.totalRevenue.toFixed(2)}` }
+                ];
+
+                statsCards.forEach(card => {
+                    const cardEl = document.createElement('div');
+                    cardEl.className = 'stats-card';
+                    cardEl.innerHTML = `
+                        <div class="stats-label">${card.label}</div>
+                        <div class="stats-value">${card.value}</div>
+                    `;
+                    grid.appendChild(cardEl);
+                });
+            }
 
             window.recharge = async () => {
                 const username = document.getElementById('recharge-username').value;
@@ -305,19 +353,29 @@
                 ws.onopen = () => {
                     statusEl.textContent = '已连接';
                     indicatorEl.className = 'network-indicator connected';
-                    ws.send(JSON.stringify({ type: 'admin_login' }));
+                    // 使用默认管理员凭据进行WebSocket登录
+                    ws.send(JSON.stringify({ type: 'admin_login', username: 'admin', password: 'admin' }));
                 };
                 ws.onmessage = (event) => {
                     const data = JSON.parse(event.data);
                     if (data.type === 'admin_update') updateUI(data);
+                    // 添加ping消息处理
+                    if (data.type === 'ping') {
+                        // 响应ping消息，保持连接活跃
+                        ws.send(JSON.stringify({ type: 'pong' }));
+                    }
                 };
                 ws.onclose = () => {
                     statusEl.textContent = '连接关闭';
                     indicatorEl.className = 'network-indicator error';
+                    // 添加自动重连机制
+                    setTimeout(connect, 3000);
                 };
                 ws.onerror = () => {
                     statusEl.textContent = '连接错误';
                     indicatorEl.className = 'network-indicator error';
+                    // 添加自动重连机制
+                    setTimeout(connect, 3000);
                 };
             }
             connect();

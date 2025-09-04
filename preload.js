@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
     send: (channel, data) => {
-        const validSendChannels = ['minimize-window', 'maximize-window', 'close-window'];
+        const validSendChannels = ['minimize-window', 'maximize-window', 'close-window', 'login-success'];
         if (validSendChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
         }

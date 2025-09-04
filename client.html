@@ -102,13 +102,15 @@
         pinBtn.classList.add('pinned');
 
         const indicator = document.getElementById('network-indicator');
-        function setIndicatorState(state) { indicator.className = `network-indicator ${state}`; }
-
-        let ws;
         const balanceEl = document.getElementById('balance');
         const sessionCostEl = document.getElementById('session-cost');
+        const loginView = document.getElementById('login-view');
+        const statusView = document.getElementById('status-view');
+        const lockOverlay = document.getElementById('lock-overlay');
+        let ws;
         let sessionTimerInterval;
 
+        function setIndicatorState(state) { indicator.className = `network-indicator ${state}`; }
         function formatDuration(seconds) { const h = Math.floor(seconds / 3600).toString().padStart(2, '0'); const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0'); const s = Math.floor(seconds % 60).toString().padStart(2, '0'); return `${h}:${m}:${s}`; }
         function startSessionTimer(startTime) {
             if (sessionTimerInterval) clearInterval(sessionTimerInterval);
@@ -116,23 +118,13 @@
             sessionTimerInterval = setInterval(() => { document.getElementById('session-timer').textContent = formatDuration(Math.floor((new Date() - start) / 1000)); }, 1000);
         }
 
-        function connect() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            if (!username || !password) { alert('请输入用户名和密码'); return; }
-            ws = new WebSocket(`ws://localhost:3000`);
-
-            ws.onopen = () => {
-                setIndicatorState('connected');
-                ws.send(JSON.stringify({ type: 'login', username, password }));
-            };
-            ws.onmessage = (event) => {
+        const wsHandlers = {
+            onmessage: (event) => {
                 const data = JSON.parse(event.data);
-                const lockOverlay = document.getElementById('lock-overlay');
                 switch (data.type) {
                     case 'login_success':
-                        document.getElementById('login-view').classList.remove('visible');
-                        document.getElementById('status-view').classList.add('visible');
+                        loginView.classList.remove('visible');
+                        statusView.classList.add('visible');
                         balanceEl.textContent = `¥${data.balance.toFixed(2)}`;
                         document.getElementById('rate').textContent = `¥${data.rate.toFixed(2)}/H`;
                         sessionCostEl.textContent = `¥0.00`;
@@ -150,20 +142,59 @@
                     case 'shutdown': lockOverlay.innerHTML = '正在关机...'; lockOverlay.classList.add('visible'); setTimeout(() => ws.close(), 3000); break;
                     case 'force_logout': alert(data.message); ws.close(); break;
                 }
-            };
-            ws.onclose = () => {
+            },
+            onclose: () => {
                 setIndicatorState('reconnecting');
-                document.getElementById('login-view').classList.add('visible');
-                document.getElementById('status-view').classList.remove('visible');
-                const lockOverlay = document.getElementById('lock-overlay');
+                loginView.classList.add('visible');
+                statusView.classList.remove('visible');
                 lockOverlay.classList.remove('visible');
                 lockOverlay.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> 已锁定`;
                 clearInterval(sessionTimerInterval);
+            },
+            onerror: (err) => { setIndicatorState('error'); }
+        };
+
+        function connect(username, password) {
+            if (!username || !password) { alert('请输入用户名和密码'); return; }
+            ws = new WebSocket(`ws://localhost:3000`);
+            ws.onopen = () => {
+                setIndicatorState('connected');
+                ws.send(JSON.stringify({ type: 'login', username, password }));
             };
-            ws.onerror = (err) => { setIndicatorState('error'); }
+            ws.onmessage = wsHandlers.onmessage;
+            ws.onclose = wsHandlers.onclose;
+            ws.onerror = wsHandlers.onerror;
         }
-        document.getElementById('login-btn').addEventListener('click', connect);
-        document.getElementById('logout-btn').addEventListener('click', () => { if (ws) ws.close(); });
+
+        function autoConnect(username) {
+            ws = new WebSocket(`ws://localhost:3000`);
+            ws.onopen = () => {
+                setIndicatorState('connected');
+                ws.send(JSON.stringify({ type: 'client_reconnect', username }));
+            };
+            ws.onmessage = wsHandlers.onmessage;
+            ws.onclose = wsHandlers.onclose;
+            ws.onerror = wsHandlers.onerror;
+        }
+
+        document.getElementById('login-btn').addEventListener('click', () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            connect(username, password);
+        });
+        document.getElementById('logout-btn').addEventListener('click', () => { 
+            if (ws) ws.close(); 
+            window.electronAPI.send('close-window');
+        });
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const usernameFromUrl = urlParams.get('username');
+        if (usernameFromUrl) {
+            document.getElementById('username').value = usernameFromUrl;
+            autoConnect(usernameFromUrl);
+        } else {
+            loginView.classList.add('visible');
+        }
     });
     </script>
 </body>

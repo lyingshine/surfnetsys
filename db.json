@@ -2,11 +2,164 @@
   "users": {
     "1": {
       "password": "1",
-      "balance": 49.72,
+      "balance": 49.53,
       "rate": 2
+    },
+    "admin": {
+      "password": "admin",
+      "balance": 0,
+      "rate": 0,
+      "role": "admin"
     }
   },
   "session_logs": [
+    {
+      "username": "admin",
+      "startTime": "2025-09-03T19:17:39.201Z",
+      "endTime": "2025-09-03T19:19:36.328Z",
+      "duration": 2,
+      "cost": 0
+    },
+    {
+      "username": "admin",
+      "startTime": "2025-09-03T19:16:15.316Z",
+      "endTime": "2025-09-03T19:19:21.503Z",
+      "duration": 3,
+      "cost": 0
+    },
+    {
+      "username": "admin",
+      "startTime": "2025-09-03T19:17:11.748Z",
+      "endTime": "2025-09-03T19:17:39.178Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T19:07:51.893Z",
+      "endTime": "2025-09-03T19:07:56.597Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:33:12.896Z",
+      "endTime": "2025-09-03T18:33:13.922Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:30:01.201Z",
+      "endTime": "2025-09-03T18:32:54.523Z",
+      "duration": 3,
+      "cost": 0.09
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:27:29.828Z",
+      "endTime": "2025-09-03T18:28:40.042Z",
+      "duration": 1,
+      "cost": 0.04
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:25:46.479Z",
+      "endTime": "2025-09-03T18:27:21.180Z",
+      "duration": 2,
+      "cost": 0.05
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:25:06.690Z",
+      "endTime": "2025-09-03T18:25:07.814Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:16:52.914Z",
+      "endTime": "2025-09-03T18:16:54.043Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:13:51.207Z",
+      "endTime": "2025-09-03T18:13:51.994Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:13:06.095Z",
+      "endTime": "2025-09-03T18:13:06.863Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:12:42.615Z",
+      "endTime": "2025-09-03T18:13:05.867Z",
+      "duration": 0,
+      "cost": 0.01
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:12:41.620Z",
+      "endTime": "2025-09-03T18:12:42.400Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:12:40.743Z",
+      "endTime": "2025-09-03T18:12:41.403Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:12:36.016Z",
+      "endTime": "2025-09-03T18:12:40.503Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:12:35.356Z",
+      "endTime": "2025-09-03T18:12:35.820Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:12:34.545Z",
+      "endTime": "2025-09-03T18:12:35.120Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:12:31.293Z",
+      "endTime": "2025-09-03T18:12:34.307Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:12:29.920Z",
+      "endTime": "2025-09-03T18:12:31.056Z",
+      "duration": 0,
+      "cost": 0
+    },
+    {
+      "username": "1",
+      "startTime": "2025-09-03T18:12:27.229Z",
+      "endTime": "2025-09-03T18:12:29.524Z",
+      "duration": 0,
+      "cost": 0
+    },
     {
       "username": "1",
       "startTime": "2025-09-02T08:31:41.121Z",
@@ -134,11 +287,29 @@
       "cost": 0
     },
     {
-      "username": "user001",
-      "startTime": "2025-08-31T09:13:05.194Z",
-      "endTime": "2025-08-31T09:13:10.637Z",
-      "duration": 0,
-      "cost": 0
+      "users": {
+        "admin": {
+          "password": "admin",
+          "balance": 999,
+          "rate": 0,
+          "role": "admin"
+        },
+        "user": {
+          "password": "user",
+          "balance": 50,
+          "rate": 2,
+          "role": "client"
+        }
+      },
+      "session_logs": [
+        {
+          "username": "1",
+          "startTime": "2025-09-02T08:31:41.121Z",
+          "endTime": "2025-09-02T08:33:38.376Z",
+          "duration": 2,
+          "cost": 0.06
+        }
+      ]
     },
     {
       "username": "user001",

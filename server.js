@@ -4,9 +4,28 @@ const WebSocket = require('ws');
 const fs = require('fs');
 const path = require('path');
 
+// 用户验证函数，提取共用的登录验证逻辑
+function validateUser(username, password, db) {
+  const user = db.users[username];
+  if (!user || user.password !== password) {
+    return { valid: false, message: '用户名或密码错误' };
+  }
+  // 只对非管理员用户检查余额
+  if (user.role !== 'admin' && user.balance <= 0) {
+    return { valid: false, message: '余额不足' };
+  }
+  return { valid: true, user };
+}
+
+// 检查用户是否已登录
+function checkUserAlreadyLoggedIn(username, activeClients) {
+  return Array.from(activeClients.values()).some(c => c.user.username === username);
+}
+
 function startServer() {
     const app = express();
     app.use(express.json());
+    app.use(express.static(__dirname));
     const server = http.createServer(app);
     const wss = new WebSocket.Server({ server });
 
@@ -29,7 +48,14 @@ function startServer() {
                     isLocked: c.isLocked
                 })),
                 allUsers: db.users,
-                session_logs: db.session_logs.slice(0, 100) // 发送最新的100条日志
+                session_logs: db.session_logs.slice(0, 100), // 发送最新的100条日志
+                modules: [
+                    { name: '用户管理', status: '运行中', description: '管理用户账户和权限' },
+                    { name: '计费系统', status: '运行中', description: '实时计费和余额管理' },
+                    { name: '会话管理', status: '运行中', description: '管理用户登录会话' },
+                    { name: '财务统计', status: '运行中', description: '营收和消费统计' },
+                    { name: '系统日志', status: '运行中', description: '记录系统操作和事件' }
+                ]
             };
             const stateString = JSON.stringify(state);
             wss.clients.forEach(client => {
@@ -40,11 +66,38 @@ function startServer() {
         }
     }
 
-    function startBilling(ws, username) {
-        const clientData = activeClients.get(ws);
-        if (!clientData) return;
+    // 处理客户端登录的通用函数
+    function handleClientLogin(ws, username, db, activeClients) {
+        const user = db.users[username];
+        if (checkUserAlreadyLoggedIn(username, activeClients)) {
+            ws.send(JSON.stringify({ type: 'login_error', message: '账号已在别处登录' }));
+            ws.close();
+            return false;
+        }
+        
+        const clientData = { ws, user: { ...user, username }, startTime: new Date(), isLocked: false, sessionCost: 0 };
+        activeClients.set(ws, clientData);
+        startBilling(ws, username, clientData, db);
+        ws.send(JSON.stringify({ 
+            type: 'login_success', 
+            balance: user.balance, 
+            rate: user.rate, 
+            startTime: clientData.startTime.toISOString(),
+            role: user.role // 添加角色信息
+        }));
+        return true;
+    }
 
-        const hourlyRate = db.users[username]?.rate || 0;
+    function startBilling(ws, username, clientData, db) {
+        if (!clientData) return;
+        
+        const currentUser = db.users[username];
+        // 如果是管理员用户，不进行计费
+        if (currentUser && currentUser.role === 'admin') {
+            return;
+        }
+
+        const hourlyRate = currentUser?.rate || 0;
         const costPer10Seconds = (hourlyRate / 3600) * 10;
         const billingIntervalMs = 10000; // 10 seconds
 
@@ -80,21 +133,51 @@ function startServer() {
             try {
                 const data = JSON.parse(message);
                 if (data.type === 'admin_login') {
-                    ws.isAdmin = true;
-                    broadcastAdminState();
-                } else if (data.type === 'login') {
                     const { username, password } = data;
                     const user = db.users[username];
-                    if (user && user.password === password) {
-                        if (user.balance <= 0) return ws.send(JSON.stringify({ type: 'login_error', message: '余额不足' })) && ws.close();
-                        if (Array.from(activeClients.values()).some(c => c.user.username === username)) return ws.send(JSON.stringify({ type: 'login_error', message: '账号已在别处登录' })) && ws.close();
-                        
-                        const clientData = { ws, user: { username }, startTime: new Date(), isLocked: false, sessionCost: 0 };
+                    
+                    if (user && user.password === password && user.role === 'admin') {
+                        ws.isAdmin = true;
+                        const clientData = { ws, user: { ...user, username }, startTime: new Date(), isLocked: false, sessionCost: 0 };
                         activeClients.set(ws, clientData);
-                        startBilling(ws, username);
-                        ws.send(JSON.stringify({ type: 'login_success', balance: user.balance, rate: user.rate, startTime: clientData.startTime.toISOString() }));
+                        ws.send(JSON.stringify({ type: 'login_success', role: 'admin' }));
                         broadcastAdminState();
-                    } else { ws.send(JSON.stringify({ type: 'login_error', message: '用户名或密码错误' })) && ws.close(); }
+                    } else {
+                        ws.send(JSON.stringify({ type: 'login_error', message: '管理员验证失败' }));
+                        ws.close();
+                    }
+                } else if (data.type === 'login') {
+                    const { username, password } = data;
+                    const validation = validateUser(username, password, db);
+                    
+                    if (validation.valid) {
+                        if (handleClientLogin(ws, username, db, activeClients)) {
+                            broadcastAdminState();
+                        }
+                    } else {
+                        ws.send(JSON.stringify({ type: 'login_error', message: validation.message }));
+                        ws.close();
+                    }
+                } else if (data.type === 'client_reconnect') {
+                    const { username } = data;
+                    const user = db.users[username];
+                    
+                    if (user) {
+                        if (user.role !== 'admin' && user.balance <= 0) {
+                            ws.send(JSON.stringify({ type: 'login_error', message: '余额不足' }));
+                            ws.close();
+                        } else if (handleClientLogin(ws, username, db, activeClients)) {
+                            broadcastAdminState();
+                        }
+                    } else {
+                        ws.send(JSON.stringify({ type: 'login_error', message: '用户不存在' }));
+                        ws.close();
+                    }
+                }
+                // 添加pong消息处理
+                else if (data.type === 'pong') {
+                    // 收到pong响应，连接保持活跃
+                    console.log('收到pong响应，连接保持活跃');
                 }
             } catch (error) {
                 console.error("Failed to process message: ", error);
@@ -117,6 +200,19 @@ function startServer() {
             saveDb();
             broadcastAdminState();
         });
+    });
+
+    app.post('/login', (req, res) => {
+        const { username, password } = req.body;
+        const validation = validateUser(username, password, db);
+
+        if (validation.valid) {
+            const user = validation.user;
+            const page = user.role === 'admin' ? 'admin.html' : 'client.html';
+            res.json({ success: true, page: page, username: username });
+        } else {
+            res.status(401).json({ success: false, message: validation.message });
+        }
     });
 
     const apiRouter = express.Router();
