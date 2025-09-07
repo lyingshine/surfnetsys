@@ -72,7 +72,7 @@
                     <input type="text" id="username" placeholder="用户名" required>
                 </div>
                 <div class="input-group">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
                     <input type="password" id="password" placeholder="密码" required>
                 </div>
                 <button id="login-btn">登 录</button>
@@ -155,15 +155,36 @@
         };
 
         function connect(username, password) {
-            if (!username || !password) { alert('请输入用户名和密码'); return; }
-            ws = new WebSocket(`ws://localhost:3000`);
-            ws.onopen = () => {
-                setIndicatorState('connected');
-                ws.send(JSON.stringify({ type: 'login', username, password }));
-            };
-            ws.onmessage = wsHandlers.onmessage;
-            ws.onclose = wsHandlers.onclose;
-            ws.onerror = wsHandlers.onerror;
+            if (!username || !password) { 
+                alert('请输入用户名和密码'); 
+                return; 
+            }
+            
+            // 输入验证
+            const usernameRegex = /^[a-zA-Z0-9_\-@.]+$/;
+            if (!usernameRegex.test(username) || username.length > 50) {
+                alert('用户名包含非法字符或长度过长');
+                return;
+            }
+            
+            if (password.length > 100) {
+                alert('密码长度过长');
+                return;
+            }
+            
+            try {
+                ws = new WebSocket(`ws://localhost:3000`);
+                ws.onopen = () => {
+                    setIndicatorState('connected');
+                    ws.send(JSON.stringify({ type: 'login', username, password }));
+                };
+                ws.onmessage = wsHandlers.onmessage;
+                ws.onclose = wsHandlers.onclose;
+                ws.onerror = wsHandlers.onerror;
+            } catch (error) {
+                console.error('WebSocket connection failed:', error);
+                setIndicatorState('error');
+            }
         }
 
         function autoConnect(username) {
@@ -184,14 +205,24 @@
         });
         document.getElementById('logout-btn').addEventListener('click', () => { 
             if (ws) ws.close(); 
-            window.electronAPI.send('close-window');
+            window.electronAPI.send('logout-to-login');
         });
 
-        const urlParams = new URLSearchParams(window.location.search);
-        const usernameFromUrl = urlParams.get('username');
+        const usernameFromUrl = new URLSearchParams(window.location.search).get('username');
+        
+        // 验证URL参数的安全性并尝试自动重连
         if (usernameFromUrl) {
-            document.getElementById('username').value = usernameFromUrl;
-            autoConnect(usernameFromUrl);
+            const usernameRegex = /^[a-zA-Z0-9_\-@.]+$/;
+            if (usernameRegex.test(usernameFromUrl) && usernameFromUrl.length <= 50) {
+                document.getElementById('username').value = usernameFromUrl;
+                // 隐藏登录表单并进入自动重连流程
+                loginView.classList.remove('visible');
+                setIndicatorState('reconnecting');
+                autoConnect(usernameFromUrl);
+            } else {
+                console.warn('Invalid username parameter from URL');
+                loginView.classList.add('visible');
+            }
         } else {
             loginView.classList.add('visible');
         }

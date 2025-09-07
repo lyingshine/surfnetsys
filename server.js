@@ -54,8 +54,31 @@ function startServer() {
     };
 
     const DB_PATH = path.join(__dirname, 'db.json');
-    let db = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
-    if (!db.session_logs) db.session_logs = [];
+    let db;
+
+    function initializeDb() {
+        try {
+            const data = fs.readFileSync(DB_PATH, 'utf8');
+            db = JSON.parse(data);
+        } catch (error) {
+            console.log('Database file does not exist or is corrupted, creating new database.');
+            db = {
+                users: {
+                    "admin": {
+                        "password": "admin",
+                        "role": "admin",
+                        "balance": 0,
+                        "rate": 0
+                    }
+                },
+                session_logs: []
+            };
+            saveDb();
+        }
+        if (!db.session_logs) db.session_logs = [];
+    }
+
+    initializeDb();
 
     const activeClients = new Map();
 
@@ -131,14 +154,20 @@ function startServer() {
             const user = db.users[username];
             if (!user) {
                 ws.close();
-                clearInterval(clientData.intervalId);
+                if (clientData.intervalId) {
+                    clearInterval(clientData.intervalId);
+                }
                 return;
             }
 
             if (user.balance >= costPer10Seconds) {
                 user.balance -= costPer10Seconds;
                 clientData.sessionCost = (clientData.sessionCost || 0) + costPer10Seconds;
-                ws.send(JSON.stringify({ type: 'balance_update', balance: user.balance, sessionCost: clientData.sessionCost }));
+                ws.send(JSON.stringify({ 
+                    type: 'balance_update', 
+                    balance: parseFloat(user.balance.toFixed(2)), 
+                    sessionCost: parseFloat(clientData.sessionCost.toFixed(2)) 
+                }));
             } else {
                 user.balance = 0;
                 ws.send(JSON.stringify({ type: 'force_logout', message: '余额耗尽' }));
@@ -153,6 +182,47 @@ function startServer() {
                 ws.send(JSON.stringify({ type: 'ping' }));
             }
         }, 10000);
+
+        ws.on('close', () => {
+            clearInterval(heartbeat);
+            try {
+                const clientData = activeClients.get(ws);
+                if (clientData) {
+                    // 清理计费定时器
+                    if (clientData.intervalId) {
+                        clearInterval(clientData.intervalId);
+                    }
+
+                    const endTime = new Date();
+                    const duration = Math.round((endTime - clientData.startTime) / 60000);
+                    const finalCost = parseFloat((clientData.sessionCost || 0).toFixed(2));
+
+                    // 限制日志数量，防止内存溢出
+                    if (db.session_logs.length > 1000) {
+                        db.session_logs = db.session_logs.slice(0, 500);
+                    }
+                    
+                    db.session_logs.unshift({ 
+                        username: clientData.user.username, 
+                        startTime: clientData.startTime.toISOString(), 
+                        endTime: endTime.toISOString(), 
+                        duration, 
+                        cost: finalCost 
+                    });
+                    
+                    const user = db.users[clientData.user.username];
+                    if (user) {
+                        user.balance = parseFloat(user.balance.toFixed(2));
+                    }
+
+                    activeClients.delete(ws);
+                    saveDb();
+                    broadcastAdminState();
+                }
+            } catch (error) {
+                console.error("Error in ws.on('close'):", error);
+            }
+        });
 
         ws.on('message', (message) => {
             try {
@@ -206,32 +276,7 @@ function startServer() {
             }
         });
 
-        ws.on('close', () => {
-            try {
-                clearInterval(heartbeat);
-                if (!activeClients.has(ws)) return;
 
-                const clientData = activeClients.get(ws);
-                clearInterval(clientData.intervalId);
-
-                const endTime = new Date();
-                const duration = Math.round((endTime - clientData.startTime) / 60000);
-                const finalCost = parseFloat((clientData.sessionCost || 0).toFixed(2));
-
-                db.session_logs.unshift({ username: clientData.user.username, startTime: clientData.startTime.toISOString(), endTime: endTime.toISOString(), duration, cost: finalCost });
-                
-                const user = db.users[clientData.user.username];
-                if (user) {
-                    user.balance = parseFloat(user.balance.toFixed(2));
-                }
-
-                activeClients.delete(ws);
-                saveDb();
-                broadcastAdminState();
-            } catch (error) {
-                console.error("Error in ws.on('close'):", error);
-            }
-        });
     });
 
     app.post('/login', (req, res) => {
@@ -323,7 +368,7 @@ function startServer() {
     });
 
     const PORT = 3000;
-    server.listen(PORT, () => console.log(`服务器已启动，运行在 http://localhost:${PORT}`));
+    server.listen(PORT, () => console.log(`Server started, running at http://localhost:${PORT}`));
 }
 
 function getRevenueStats(db, period = 'today') {

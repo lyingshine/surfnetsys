@@ -86,6 +86,7 @@
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.1); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.2s; }
         .modal.visible { display: flex; }
         .modal-content { padding: 32px; background-color: var(--surface-color); border-radius: 12px; width: 440px; box-shadow: var(--shadow-md); border: 1px solid var(--border-color); }
+        .controls-hidden .window-controls { display: none; }
     </style>
 </head>
 <body>
@@ -122,6 +123,17 @@
         <div class="content-pane">
             <div id="view-console" class="view active">
                 <div class="card">
+                    <h2>系统设置</h2>
+                    <p>管理应用程序的基本设置。</p>
+                    <button id="disable-auto-start-btn" class="secondary">禁用开机自启</button>
+                    <h3 style="margin-top: 24px; margin-bottom: 12px;">Kiosk模式 (外壳替换)</h3>
+                    <p style="color: var(--text-color-secondary); font-size: 13px; margin-bottom: 16px;">将本程序设置为系统外壳，开机后直接启动本应用，登录成功后才显示桌面。此为高风险操作，请确保您知道如何从安全模式恢复。</p>
+                    <div style="display: flex; gap: 12px;">
+                        <button id="enable-kiosk-btn" class="primary" style="background-color: var(--warning-color);">启用Kiosk模式</button>
+                        <button id="disable-kiosk-btn" class="secondary">恢复默认桌面</button>
+                    </div>
+                </div>
+                <div class="card" style="margin-top: 24px;">
                     <h2>服务端日志</h2>
                     <pre id="server-log" style="background-color: #2d2d2d; color: #f0f0f0; padding: 16px; border-radius: 8px; height: 450px; overflow-y: auto; font-family: monospace;">服务端启动日志将显示在这里...</pre>
                 </div>
@@ -150,6 +162,13 @@
             document.getElementById('minimize-btn').addEventListener('click', () => window.electronAPI.send('minimize-window'));
             document.getElementById('maximize-btn').addEventListener('click', () => window.electronAPI.send('maximize-window'));
             document.getElementById('close-btn').addEventListener('click', () => window.electronAPI.send('close-window'));
+
+            document.getElementById('disable-auto-start-btn').addEventListener('click', () => {
+                if (confirm('您确定要禁用开机自启吗？')) {
+                    window.electronAPI.send('disable-auto-start');
+                    alert('开机自启已禁用。您需要在下次程序启动后（非本次），才会完全生效。');
+                }
+            });
 
             function openView(viewId) {
                 views.forEach(v => v.classList.remove('active'));
@@ -387,6 +406,34 @@
             }
             connect();
             openView('console');
+
+            document.getElementById('enable-kiosk-btn').addEventListener('click', () => {
+                if (confirm('【高风险】确定要将本程序设置为系统外壳吗？\n如果程序无法启动，您将无法进入桌面！\n恢复方法：开机时按住Shift并点击重启，进入“疑难解答”->“高级选项”->“启动设置”->“重启”，然后选择“带命令提示符的安全模式”，在命令行中输入 regedit 并回车，手动将 HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell 的值改回 explorer.exe。')) {
+                    window.electronAPI.send('set-kiosk-mode');
+                }
+            });
+
+            document.getElementById('disable-kiosk-btn').addEventListener('click', () => {
+                if (confirm('确定要恢复为默认的 Windows 桌面环境吗？')) {
+                    window.electronAPI.send('disable-kiosk-mode');
+                }
+            });
+
+            window.electronAPI.on('kiosk-mode-result', ({ success, error }) => {
+                if (success) {
+                    alert('注册表更新成功！请重启电脑以使设置生效。');
+                } else {
+                    alert(`操作失败！\n错误信息: ${error}\n\n请确保您是以【管理员身份】运行本程序！`);
+                }
+            });
+
+            window.electronAPI.on('set-controls-visibility', (visible) => {
+                if (visible) {
+                    document.body.classList.remove('controls-hidden');
+                } else {
+                    document.body.classList.add('controls-hidden');
+                }
+            });
         });
     </script>
 </body>

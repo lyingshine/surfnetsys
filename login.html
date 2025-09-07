@@ -37,9 +37,7 @@
 </head>
 <body>
     <div class="background-grid"></div>
-    <div class="titlebar">
-        <div class="window-controls"><button id="minimize-btn">-</button><button id="close-btn">×</button></div>
-    </div>
+    
     <div class="main-container">
         <div class="content-wrapper">
             <div class="logo">PHANTOM ONLINE<span>幻影在线</span></div>
@@ -57,10 +55,7 @@
             <p id="error-message" class="error"></p>
         </div>
     </div>
-    <script>
-        document.getElementById('minimize-btn').addEventListener('click', () => window.electronAPI.send('minimize-window'));
-        document.getElementById('close-btn').addEventListener('click', () => window.electronAPI.send('close-window'));
-    </script>
+    
     <script src="./login.js"></script>
 </body>
 </html>
