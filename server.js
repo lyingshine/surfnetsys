@@ -6,20 +6,20 @@ const path = require('path');
 
 // 用户验证函数，提取共用的登录验证逻辑
 function validateUser(username, password, db) {
-  const user = db.users[username];
-  if (!user || user.password !== password) {
-    return { valid: false, message: '用户名或密码错误' };
-  }
-  // 只对非管理员用户检查余额
-  if (user.role !== 'admin' && user.balance <= 0) {
-    return { valid: false, message: '余额不足' };
-  }
-  return { valid: true, user };
+    const user = db.users[username];
+    if (!user || user.password !== password) {
+        return { valid: false, message: '用户名或密码错误' };
+    }
+    // 只对非管理员用户检查余额
+    if (user.role !== 'admin' && user.balance <= 0) {
+        return { valid: false, message: '余额不足' };
+    }
+    return { valid: true, user };
 }
 
 // 检查用户是否已登录
 function checkUserAlreadyLoggedIn(username, activeClients) {
-  return Array.from(activeClients.values()).some(c => c.user.username === username);
+    return Array.from(activeClients.values()).some(c => c.user.username === username);
 }
 
 function startServer() {
@@ -29,13 +29,39 @@ function startServer() {
     const server = http.createServer(app);
     const wss = new WebSocket.Server({ server });
 
+    const broadcastLog = (message) => {
+        const logData = { type: 'server_log', message };
+        const logString = JSON.stringify(logData);
+        wss.clients.forEach(client => {
+            if (client.isAdmin) {
+                client.send(logString);
+            }
+        });
+    };
+
+    const originalConsoleLog = console.log;
+    console.log = (...args) => {
+        const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+        originalConsoleLog.apply(console, args);
+        broadcastLog(message);
+    };
+
+    const originalConsoleError = console.error;
+    console.error = (...args) => {
+        const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+        originalConsoleError.apply(console, args);
+        broadcastLog(`ERROR: ${message}`);
+    };
+
     const DB_PATH = path.join(__dirname, 'db.json');
     let db = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
     if (!db.session_logs) db.session_logs = [];
 
     const activeClients = new Map();
 
-    function saveDb() { fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf8'); }
+    function saveDb() {
+        fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf8');
+    }
 
     function broadcastAdminState() {
         try {
@@ -44,7 +70,7 @@ function startServer() {
                 clients: Array.from(activeClients.values()).map(c => ({
                     username: c.user.username,
                     startTime: c.startTime,
-                    balance: db.users[c.user.username]?.balance,
+                    balance: db.users[c.user.username] ? db.users[c.user.username].balance : null,
                     isLocked: c.isLocked
                 })),
                 allUsers: db.users,
@@ -74,14 +100,14 @@ function startServer() {
             ws.close();
             return false;
         }
-        
+
         const clientData = { ws, user: { ...user, username }, startTime: new Date(), isLocked: false, sessionCost: 0 };
         activeClients.set(ws, clientData);
         startBilling(ws, username, clientData, db);
-        ws.send(JSON.stringify({ 
-            type: 'login_success', 
-            balance: user.balance, 
-            rate: user.rate, 
+        ws.send(JSON.stringify({
+            type: 'login_success',
+            balance: user.balance,
+            rate: user.rate,
             startTime: clientData.startTime.toISOString(),
             role: user.role // 添加角色信息
         }));
@@ -90,32 +116,31 @@ function startServer() {
 
     function startBilling(ws, username, clientData, db) {
         if (!clientData) return;
-        
+
         const currentUser = db.users[username];
-        // 如果是管理员用户，不进行计费
-        if (currentUser && currentUser.role === 'admin') {
+        if (!currentUser || currentUser.role === 'admin') {
             return;
         }
 
-        const hourlyRate = currentUser?.rate || 0;
+        const hourlyRate = currentUser.rate || 0;
         const costPer10Seconds = (hourlyRate / 3600) * 10;
         const billingIntervalMs = 10000; // 10 seconds
 
         clientData.intervalId = setInterval(() => {
             if (clientData.isLocked) return;
-            const currentUser = db.users[username];
-            if (!currentUser) {
+            const user = db.users[username];
+            if (!user) {
                 ws.close();
                 clearInterval(clientData.intervalId);
                 return;
             }
 
-            if (currentUser.balance >= costPer10Seconds) {
-                currentUser.balance -= costPer10Seconds;
+            if (user.balance >= costPer10Seconds) {
+                user.balance -= costPer10Seconds;
                 clientData.sessionCost = (clientData.sessionCost || 0) + costPer10Seconds;
-                ws.send(JSON.stringify({ type: 'balance_update', balance: currentUser.balance, sessionCost: clientData.sessionCost }));
+                ws.send(JSON.stringify({ type: 'balance_update', balance: user.balance, sessionCost: clientData.sessionCost }));
             } else {
-                currentUser.balance = 0;
+                user.balance = 0;
                 ws.send(JSON.stringify({ type: 'force_logout', message: '余额耗尽' }));
                 ws.close();
             }
@@ -135,7 +160,7 @@ function startServer() {
                 if (data.type === 'admin_login') {
                     const { username, password } = data;
                     const user = db.users[username];
-                    
+
                     if (user && user.password === password && user.role === 'admin') {
                         ws.isAdmin = true;
                         const clientData = { ws, user: { ...user, username }, startTime: new Date(), isLocked: false, sessionCost: 0 };
@@ -149,7 +174,7 @@ function startServer() {
                 } else if (data.type === 'login') {
                     const { username, password } = data;
                     const validation = validateUser(username, password, db);
-                    
+
                     if (validation.valid) {
                         if (handleClientLogin(ws, username, db, activeClients)) {
                             broadcastAdminState();
@@ -161,7 +186,7 @@ function startServer() {
                 } else if (data.type === 'client_reconnect') {
                     const { username } = data;
                     const user = db.users[username];
-                    
+
                     if (user) {
                         if (user.role !== 'admin' && user.balance <= 0) {
                             ws.send(JSON.stringify({ type: 'login_error', message: '余额不足' }));
@@ -173,11 +198,8 @@ function startServer() {
                         ws.send(JSON.stringify({ type: 'login_error', message: '用户不存在' }));
                         ws.close();
                     }
-                }
-                // 添加pong消息处理
-                else if (data.type === 'pong') {
+                } else if (data.type === 'pong') {
                     // 收到pong响应，连接保持活跃
-                    console.log('收到pong响应，连接保持活跃');
                 }
             } catch (error) {
                 console.error("Failed to process message: ", error);
@@ -185,20 +207,30 @@ function startServer() {
         });
 
         ws.on('close', () => {
-            clearInterval(heartbeat); // 清除心跳
-            if (!activeClients.has(ws)) return;
-            const clientData = activeClients.get(ws);
-            clearInterval(clientData.intervalId);
-            const endTime = new Date();
-            const duration = Math.round((endTime - clientData.startTime) / 60000);
-            const finalCost = parseFloat((clientData.sessionCost || 0).toFixed(2));
-            db.session_logs.unshift({ username: clientData.user.username, startTime: clientData.startTime.toISOString(), endTime: endTime.toISOString(), duration, cost: finalCost });
-            if(db.users[clientData.user.username]) {
-                db.users[clientData.user.username].balance = parseFloat(db.users[clientData.user.username].balance.toFixed(2));
+            try {
+                clearInterval(heartbeat);
+                if (!activeClients.has(ws)) return;
+
+                const clientData = activeClients.get(ws);
+                clearInterval(clientData.intervalId);
+
+                const endTime = new Date();
+                const duration = Math.round((endTime - clientData.startTime) / 60000);
+                const finalCost = parseFloat((clientData.sessionCost || 0).toFixed(2));
+
+                db.session_logs.unshift({ username: clientData.user.username, startTime: clientData.startTime.toISOString(), endTime: endTime.toISOString(), duration, cost: finalCost });
+                
+                const user = db.users[clientData.user.username];
+                if (user) {
+                    user.balance = parseFloat(user.balance.toFixed(2));
+                }
+
+                activeClients.delete(ws);
+                saveDb();
+                broadcastAdminState();
+            } catch (error) {
+                console.error("Error in ws.on('close'):", error);
             }
-            activeClients.delete(ws);
-            saveDb();
-            broadcastAdminState();
         });
     });
 
@@ -222,7 +254,7 @@ function startServer() {
         const { username, password, rate } = req.body;
         if (!username || !password || rate === undefined) return res.status(400).json({ message: '缺少必要字段' });
         if (db.users[username]) return res.status(409).json({ message: '用户名已存在' });
-        db.users[username] = { password, balance: 0, rate: parseFloat(rate) };
+        db.users[username] = { password, balance: 0, rate: parseFloat(rate), role: 'user' };
         saveDb();
         broadcastAdminState();
         res.status(201).json({ success: true, message: '用户创建成功' });
@@ -291,7 +323,7 @@ function startServer() {
     });
 
     const PORT = 3000;
-    server.listen(PORT, () => console.log(`Server is now running on http://localhost:${PORT}`));
+    server.listen(PORT, () => console.log(`服务器已启动，运行在 http://localhost:${PORT}`));
 }
 
 function getRevenueStats(db, period = 'today') {
@@ -336,3 +368,8 @@ function getRevenueStats(db, period = 'today') {
 }
 
 module.exports = { startServer };
+
+// 当文件被直接执行时，启动服务器
+if (require.main === module) {
+    startServer();
+}

@@ -91,6 +91,7 @@
 <body>
     <svg width="0" height="0" style="display:none;">
         <defs>
+            <symbol id="icon-console" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></symbol>
             <symbol id="icon-dashboard" viewBox="0 0 24 24"><path fill="currentColor" d="M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42C17.99 7.86 19 9.81 19 12c0 3.87-3.13 7-7 7s-7-3.13-7-7c0-2.19 1.01-4.14 2.58-5.42L6.17 5.17C4.23 6.82 3 9.26 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.74-1.23-5.18-3.17-6.83z"/></symbol>
             <symbol id="icon-users" viewBox="0 0 24 24"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></symbol>
             <symbol id="icon-finance" viewBox="0 0 24 24"><path fill="currentColor" d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></symbol>
@@ -103,11 +104,11 @@
     <div class="sidebar">
         <div class="sidebar-header">幻影在线</div>
         <nav class="sidebar-nav">
-            <a href="#" class="nav-item active" data-view="devices"><svg><use href="#icon-dashboard"/></svg>设备概览</a>
+            <a href="#" class="nav-item active" data-view="console"><svg><use href="#icon-console"/></svg>控制台</a>
+            <a href="#" class="nav-item" data-view="devices"><svg><use href="#icon-dashboard"/></svg>设备概览</a>
             <a href="#" class="nav-item" data-view="users"><svg><use href="#icon-users"/></svg>用户管理</a>
             <a href="#" class="nav-item" data-view="finance"><svg><use href="#icon-finance"/></svg>财务中心</a>
             <a href="#" class="nav-item" data-view="logs"><svg><use href="#icon-logs"/></svg>系统日志</a>
-
         </nav>
         <div class="sidebar-footer">
             <div id="network-indicator"></div><span id="status" style="margin-left: 8px;"></span>
@@ -115,11 +116,17 @@
     </div>
     <div class="main-container">
         <div class="titlebar">
-            <div id="view-title" class="titlebar-title">设备概览</div>
+            <div id="view-title" class="titlebar-title">控制台</div>
             <div class="window-controls"><button id="pin-btn" title="置顶">📌</button><button id="minimize-btn" title="最小化">-</button><button id="maximize-btn" title="最大化">+</button><button id="close-btn" title="关闭">×</button></div>
         </div>
         <div class="content-pane">
-            <div id="view-devices" class="view active"><div id="device-grid" class="device-grid"></div></div>
+            <div id="view-console" class="view active">
+                <div class="card">
+                    <h2>服务端日志</h2>
+                    <pre id="server-log" style="background-color: #2d2d2d; color: #f0f0f0; padding: 16px; border-radius: 8px; height: 450px; overflow-y: auto; font-family: monospace;">服务端启动日志将显示在这里...</pre>
+                </div>
+            </div>
+            <div id="view-devices" class="view"><div id="device-grid" class="device-grid"></div></div>
             <div id="view-users" class="view"><div class="card"><h2>用户管理</h2><table id="all-users-table"><thead><tr><th>用户名</th><th>费率 (元/小时)</th><th>余额</th><th>操作</th></tr></thead><tbody></tbody></table></div></div>
             <div id="view-finance" class="view"><div class="card"><h2>用户充值</h2><div class="form-row"><label>用户名</label><input id="recharge-username" placeholder="要充值的用户名"></div><div class="form-row"><label>金额</label><input id="recharge-amount" type="number" placeholder="充值金额"></div><button onclick="window.recharge()" class="primary">确认充值</button></div><div class="card" style="margin-top: 24px;"><h2>营收统计</h2><div id="stats-controls" style="margin-bottom: 16px; display: flex; gap: 8px;"><button class="secondary" onclick="window.updateStats('today')">今日</button><button class="secondary" onclick="window.updateStats('week')">本周</button><button class="secondary" onclick="window.updateStats('month')">本月</button><button class="secondary" onclick="window.updateStats('all')">全部</button></div><div id="stats-grid" class="grid-container"></div></div></div>
             <div id="view-logs" class="view"><div class="card"><h2>系统日志</h2><table id="logs-table"><thead><tr><th>时间</th><th>用户</th><th>事件</th><th>详情</th></tr></thead><tbody></tbody></table></div></div>
@@ -160,6 +167,9 @@
                 });
             });
 
+            
+
+
             async function apiCall(endpoint, method, body) {
                 try {
                     const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -178,7 +188,6 @@
                 updateDeviceGrid(data.clients);
                 updateUsersTable(data.allUsers);
                 updateLogsTable(data.session_logs);
-
             }
 
             function updateDeviceGrid(clients) {
@@ -233,8 +242,6 @@
                     row.innerHTML = `<td>${new Date(log.endTime).toLocaleString()}</td><td>${log.username}</td><td>会话结束</td><td>时长: ${duration}分, 消费: ¥${cost.toFixed(2)}</td>`;
                 });
             }
-
-
             
             window.controlClient = (username, action) => apiCall(`/control/${username}`, 'POST', { action });
 
@@ -353,33 +360,33 @@
                 ws.onopen = () => {
                     statusEl.textContent = '已连接';
                     indicatorEl.className = 'network-indicator connected';
-                    // 使用默认管理员凭据进行WebSocket登录
                     ws.send(JSON.stringify({ type: 'admin_login', username: 'admin', password: 'admin' }));
                 };
                 ws.onmessage = (event) => {
                     const data = JSON.parse(event.data);
                     if (data.type === 'admin_update') updateUI(data);
-                    // 添加ping消息处理
                     if (data.type === 'ping') {
-                        // 响应ping消息，保持连接活跃
                         ws.send(JSON.stringify({ type: 'pong' }));
+                    }
+                    if (data.type === 'server_log') {
+                        const serverLogEl = document.getElementById('server-log');
+                        serverLogEl.textContent += data.message + '\n';
+                        serverLogEl.scrollTop = serverLogEl.scrollHeight;
                     }
                 };
                 ws.onclose = () => {
                     statusEl.textContent = '连接关闭';
                     indicatorEl.className = 'network-indicator error';
-                    // 添加自动重连机制
                     setTimeout(connect, 3000);
                 };
                 ws.onerror = () => {
                     statusEl.textContent = '连接错误';
                     indicatorEl.className = 'network-indicator error';
-                    // 添加自动重连机制
                     setTimeout(connect, 3000);
                 };
             }
             connect();
-            openView('devices');
+            openView('console');
         });
     </script>
 </body>

@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
     send: (channel, data) => {
-        const validSendChannels = ['minimize-window', 'maximize-window', 'close-window', 'login-success'];
+                const validSendChannels = ['minimize-window', 'maximize-window', 'close-window', 'login-success'];
         if (validSendChannels.includes(channel)) {
             ipcRenderer.send(channel, data);
         }
@@ -11,6 +11,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         const validInvokeChannels = ['toggle-always-on-top'];
         if (validInvokeChannels.includes(channel)) {
             return ipcRenderer.invoke(channel, data);
+        }
+    },
+    on: (channel, func) => {
+        const validReceiveChannels = ['server-status', 'server-log'];
+        if (validReceiveChannels.includes(channel)) {
+            // Deliberately strip event as it includes `sender` 
+            ipcRenderer.on(channel, (event, ...args) => func(...args));
         }
     }
 });
