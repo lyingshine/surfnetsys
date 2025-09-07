@@ -142,13 +142,6 @@ function createClientWindow(username) {
                 click: () => {
                     clientWindow.isVisible() ? clientWindow.hide() : clientWindow.show();
                 }
-            },
-            {
-                label: 'Exit',
-                click: () => {
-                    app.isQuiting = true;
-                    app.quit();
-                }
             }
         ]);
         tray.setToolTip('Phantom Online Client');
