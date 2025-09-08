@@ -186,7 +186,6 @@ function createAdminWindow(username) {
 }
 
 app.whenReady().then(() => {
-    startBlockingShortcuts();
 
     // Only start server if not in client-only mode
     if (!process.env.CLIENT_ONLY) {
